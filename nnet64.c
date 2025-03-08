@@ -4,21 +4,21 @@
 #include <string.h>
 #include <stdio.h>
 
-#include "nnet.h"
+#include "nnet64.h"
 
 // ----------------------------------------------------------------------------
 // neural net blocks; the dynamics of the Transformer
 
 void rmsnorm(float* o, float* x, float* weight, int size) {
-//    printf("rmsnorm :size=%i\n",4*size);
+    printf("rmsnorm :size=%i\n",4*size);
     // calculate sum of squares
-    float ss = 0.0f;
+    float ss = 0.0;
     for (int j = 0; j < size; j++) {
         ss += x[j] * x[j];
     }
     ss /= size;
-    ss += 1e-5f;
-    ss = 1.0f / sqrtf(ss);
+    ss += 0.00001;
+    ss = 1.0 / sqrt(ss);
     // normalize and scale
     for (int j = 0; j < size; j++) {
         o[j] = weight[j] * (ss * x[j]);
@@ -26,7 +26,7 @@ void rmsnorm(float* o, float* x, float* weight, int size) {
 }
 
 void softmax(float* x, int size) {
-//    printf("softmax :size=%i\n",4*size);
+    printf("softmax :size=%i\n",4*size);
     // find max value (for numerical stability)
     float max_val = x[0];
     for (int i = 1; i < size; i++) {
@@ -35,9 +35,9 @@ void softmax(float* x, int size) {
         }
     }
     // exp and sum
-    float sum = 0.0f;
+    float sum = 0.0;
     for (int i = 0; i < size; i++) {
-        x[i] = expf(x[i] - max_val);
+        x[i] = exp(x[i] - max_val);
         sum += x[i];
     }
     // normalize
@@ -47,12 +47,12 @@ void softmax(float* x, int size) {
 }
 
 void matmul(float* xout, float* x, float* w, int n, int d) {
- //   printf("matmul xout=%i,xin=%i:wsize=%i\n",4*d,4*n,4*d*n);
+    printf("matmul xout=%i,xin=%i:wsize=%i\n",4*d,4*n,4*d*n);
     // W (d,n) @ x (n,) -> xout (d,)
     // by far the most amount of time is spent inside this little function
     int i;
     for (i = 0; i < d; i++) {
-        float val = 0.0f;
+        float val = 0.0;
         for (int j = 0; j < n; j++) {
             val += w[i * n + j] * x[j];
         }
@@ -63,9 +63,9 @@ void matmul(float* xout, float* x, float* w, int n, int d) {
 float* forward(Transformer* transformer, int token, int pos) {
 
     // a few convenience variables
-    Config* p = &transformer->config;
-    TransformerWeights* w = &transformer->weights;
-    RunState* s = &transformer->state;
+    Config64* p = &transformer->config;
+    TransformerWeights64* w = &transformer->weights;
+    RunState64* s = &transformer->state;
     float *x = s->x;
     int dim = p->dim;
     int kv_dim = (p->dim * p->n_kv_heads) / p->n_heads;
@@ -78,13 +78,13 @@ float* forward(Transformer* transformer, int token, int pos) {
     memcpy(x, content_row, dim*sizeof(*x));
 
     // forward all the layers
-    for(unsigned long long l = 0; l < p->n_layers; l++) {
+    for(uint32_t l = 0; l < p->n_layers; l++) {
 
         // attention rmsnorm
         rmsnorm(s->xb, x, w->rms_att_weight + l*dim, dim);
 
         // key and value point to the kv cache
-        int loff = l * p->seq_len * kv_dim; // kv cache layer offset for convenience
+        uint32_t loff = l * p->seq_len * kv_dim; // kv cache layer offset for convenience
         s->k = s->key_cache + loff + pos * kv_dim;
         s->v = s->value_cache + loff + pos * kv_dim;
 
@@ -96,10 +96,10 @@ float* forward(Transformer* transformer, int token, int pos) {
         // RoPE relative positional encoding: complex-valued rotate q and k in each head
         for (int i = 0; i < dim; i+=2) {
             int head_dim = i % head_size;
-            float freq = 1.0f / powf(10000.0f, head_dim / (float)head_size);
+            float freq = 1.0 / pow(10000.0, head_dim / (float)head_size);
             float val = pos * freq;
-            float fcr = cosf(val);
-            float fci = sinf(val);
+            float fcr = cos(val);
+            float fci = sin(val);
             int rotn = i < kv_dim ? 2 : 1; // how many vectors? 2 = q & k, 1 = q only
             for (int v = 0; v < rotn; v++) {
                 float* vec = v == 0 ? s->q : s->k; // the vector to rotate (query or key)
@@ -122,11 +122,11 @@ float* forward(Transformer* transformer, int token, int pos) {
                 // get the key vector for this head and at this timestep
                 float* k = s->key_cache + loff + t * kv_dim + (h / kv_mul) * head_size;
                 // calculate the attention score as the dot product of q and k
-                float score = 0.0f;
+                float score = 0.0;
                 for (int i = 0; i < head_size; i++) {
                     score += q[i] * k[i];
                 }
-                score /= sqrtf(head_size);
+                score /= sqrt(head_size);
                 // save the score to the attention buffer
                 att[t] = score;
             }
@@ -169,7 +169,7 @@ float* forward(Transformer* transformer, int token, int pos) {
         for (int i = 0; i < hidden_dim; i++) {
             float val = s->hb[i];
             // silu(x)=x*σ(x), where σ(x) is the logistic sigmoid
-            val *= (1.0f / (1.0f + expf(-val)));
+            val *= (1.0 / (1.0 + exp(-val)));
             // elementwise multiply with w3(x)
             val *= s->hb2[i];
             s->hb[i] = val;

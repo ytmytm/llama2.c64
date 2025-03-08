@@ -1,0 +1,16 @@
+- Makefile jest oryginalny (niemal)
+- programy testowe budowane skryptami oscar* i uruchamiają x64 z obrazem REU weights.bin
+- obraz REU z stories260K.bin za pomocą strip-config.sh; usunięty obiekt config (bo inne typy danych) i padding do równych 2MB (niezbędny dla VICE)
+- config.bin to początek ze stories260K zapisany w typy danych Config64
+    - zapisany za pomocą transformer.c - konwersja w int16_t
+- config.bin wciągany binarnie w transformer64.c
+- tokenizer2.bin zapisany z run.c
+- tokenizer2.bin wciągany binarnie w tokenizer64.c
+
+nnet64.c
+- potrzebuje przypadku testowego native (tak samo pierwsze 1-2 mnożenia)
+- nnet64 forward() (i jego test) potrzebuje przerobienia na arytmetykę pointerów w REu
+- nnet64 matmul() potrzebuje przerobienia na pointery REU
+    - i trzymać jeden pointer na xout, nie trzeba obliczać pozycji za każdym razem bo i tak zmienia się o 1
+- ?rozne miejsca na wyniki s->q, s->k, s->v (lokalne i REU) - zrobić 2 funkcje na matmul()?
+    - albo s->q przenieść do reu

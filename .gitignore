@@ -7,3 +7,5 @@
 *.int
 test-tokenizer
 log
+run
+runfull
