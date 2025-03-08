@@ -18,6 +18,14 @@ test-tokenizer: tokenizer.c tokenizer.h test-tokenizer.c util.c util.h
 	gcc test-tokenizer.o tokenizer.o util.o -o test-tokenizer $(LDFLAGS)
 	./test-tokenizer
 
+test-nnet: transformer.c transformer.h nnet.c nnet.h util.c util.h test-nnet.c
+	gcc $(CFLAGS) test-nnet.c
+	gcc $(CFLAGS) transformer.c
+	gcc $(CFLAGS) nnet.c
+	gcc $(CFLAGS) util.c
+	gcc test-nnet.o transformer.o nnet.o util.o -o test-nnet $(LDFLAGS)
+	./test-nnet
+
 run:	run.c tokenizer.c tokenizer.h sampler.c sampler.h nnet.c nnet.h transformer.c transformer.h util.c util.h generate.c generate.h
 	gcc $(CFLAGS) transformer.c
 	gcc $(CFLAGS) tokenizer.c
@@ -31,7 +39,8 @@ run:	run.c tokenizer.c tokenizer.h sampler.c sampler.h nnet.c nnet.h transformer
 runfull:	runfull.c
 	gcc -g runfull.c -o runfull -lm
 
-all: runfull run test
+#all: runfull run test
+all: test-nnet
 
 clean:
 	rm -f run runfull *.o
