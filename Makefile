@@ -11,6 +11,13 @@ test:	run runfull
 	./run stories260K.bin -z tok512.bin -t $(TEMP) -s $(SEED) -n $(NTOKENS) -i "Once upon"
 	./run stories260K.bin -t $(TEMP) -s $(SEED) -n $(NTOKENS) -i "Once upon"
 
+test-tokenizer: tokenizer.c tokenizer.h test-tokenizer.c util.c util.h
+	gcc $(CFLAGS) tokenizer.c
+	gcc $(CFLAGS) util.c
+	gcc $(CFLAGS) test-tokenizer.c
+	gcc test-tokenizer.o tokenizer.o util.o -o test-tokenizer $(LDFLAGS)
+	./test-tokenizer
+
 run:	run.c tokenizer.c tokenizer.h sampler.c sampler.h nnet.c nnet.h transformer.c transformer.h util.c util.h generate.c generate.h
 	gcc $(CFLAGS) transformer.c
 	gcc $(CFLAGS) tokenizer.c
