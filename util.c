@@ -26,5 +26,6 @@ void safe_printf(char *piece) {
             return; // bad byte, don't print it
         }
     }
+    if (piece[0] < 0) { printf("\n"); return; } // for mmaped tokenizer only, why?
     printf("%s", piece);
 }

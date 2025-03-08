@@ -19,6 +19,8 @@ void generate(Transformer *transformer, Tokenizer *tokenizer, Sampler *sampler, 
 
     // encode the (string) prompt into tokens sequence
     int num_prompt_tokens = 0;
+
+    printf("Allocating generate: prompt_tokens %zu bytes\n", (strlen(prompt)+3) * sizeof(int));
     int* prompt_tokens = (int*)malloc((strlen(prompt)+3) * sizeof(int)); // +3 for '\0', ?BOS, ?EOS
     encode(tokenizer, prompt, 1, 0, prompt_tokens, &num_prompt_tokens);
     if (num_prompt_tokens < 1) {

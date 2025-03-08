@@ -33,7 +33,7 @@ int main(int argc, char *argv[]) {
 
     // default parameters
     char *checkpoint_path = NULL;  // e.g. out/model.bin
-    char *tokenizer_path = "tokenizer.bin";
+    char *tokenizer_path = NULL;  // e.g. out/tokenizer.bin
     float temperature = 1.0f;   // 0.0 = greedy deterministic. 1.0 = original. don't set higher
     float topp = 0.9f;          // top-p in nucleus sampling. 1.0 = off. 0.9 works well, but slower
     int steps = 256;            // number of steps to run for
@@ -67,17 +67,36 @@ int main(int argc, char *argv[]) {
     Transformer transformer;
     build_transformer(&transformer, checkpoint_path);
     if (steps == 0 || steps > transformer.config.seq_len) steps = transformer.config.seq_len; // override to ~max length
+    printf("build transformer\n");
 
     // build the Tokenizer via the tokenizer .bin file
     Tokenizer tokenizer;
     printf("Vocab size: %i\n",transformer.config.vocab_size);
-    build_tokenizer(&tokenizer, tokenizer_path, transformer.config.vocab_size);
+    if (tokenizer_path == NULL) {
+        tokenizer_path = "tokenizer.bin";
+        printf("Using processed tokenizer.bin\n");
+        load_tokenizer(&tokenizer, tokenizer_path);
+    } else {
+        build_tokenizer(&tokenizer, tokenizer_path, transformer.config.vocab_size);
+        save_tokenizer(&tokenizer, "tokenizer.bin");
+        printf("Saved processed tokenizer.bin\n");
+    }
+    #ifdef DEBUG
+    printf("max_token_length: %i\n", tokenizer.max_token_length);
+    printf("vocab_size: %i\n", tokenizer.vocab_size);
+    printf("tokenizer scores[50]: %f\n", tokenizer.vocab_scores[511]);
+    printf("tokenizer vocab[50]: %s\n", tokenizer.vocab[511]);
+    printf("tokenizer sorted_vocab[50].str: %s\n", tokenizer.sorted_vocab[511].str);
+    printf("tokenizer sorted_vocab[50].id: %i\n", tokenizer.sorted_vocab[511].id);
+    #endif
 
     // build the Sampler
     Sampler sampler;
     build_sampler(&sampler, transformer.config.vocab_size, temperature, topp, rng_seed);
+    printf("build sampler\n");
 
     // run!
+    printf("running...\n");
     generate(&transformer, &tokenizer, &sampler, prompt, steps);
 
     // memory and file handles cleanup

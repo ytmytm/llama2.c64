@@ -1,5 +1,7 @@
 /* Inference for Llama-2 Transformer model in pure C */
 
+#include <stdio.h>
+
 #include "sampler.h"
 #include "nnet.h"
 
@@ -90,6 +92,8 @@ void build_sampler(Sampler* sampler, int vocab_size, float temperature, float to
     sampler->topp = topp;
     sampler->rng_state = rng_seed;
     // buffer only used with nucleus sampling; may not need but it's ~small
+    // can be removed if not using top-p sampling: -p 1.0
+    printf("Allocating sampler->probindex: %zu bytes\n", sampler->vocab_size * sizeof(ProbIndex));
     sampler->probindex = malloc(sampler->vocab_size * sizeof(ProbIndex));
 }
 

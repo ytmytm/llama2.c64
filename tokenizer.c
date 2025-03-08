@@ -3,6 +3,9 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
+#include <sys/mman.h>
+#include <fcntl.h>
+#include <unistd.h>
 
 #include "tokenizer.h"
 
@@ -10,14 +13,12 @@
 // The Byte Pair Encoding (BPE) Tokenizer that translates strings <-> tokens
 
 // needed for qsorting the vocabulary
-int compare_tokens(const void *a, const void *b) {
+int compare_tokens(const void* a, const void* b) {
     return strcmp(((TokenIndex*)a)->str, ((TokenIndex*)b)->str);
 }
 
 void build_tokenizer(Tokenizer* t, char* tokenizer_path, int vocab_size) {
-    // i should have written the vocab_size into the tokenizer file... sigh
     t->vocab_size = vocab_size;
-    // malloc space to hold the scores and the strings
     t->vocab = (char**)malloc(vocab_size * sizeof(char*));
     t->vocab_scores = (float*)malloc(vocab_size * sizeof(float));
     t->sorted_vocab = malloc(t->vocab_size * sizeof(TokenIndex));
@@ -25,34 +26,151 @@ void build_tokenizer(Tokenizer* t, char* tokenizer_path, int vocab_size) {
         t->byte_pieces[i * 2] = (unsigned char)i;
         t->byte_pieces[i * 2 + 1] = '\0';
     }
-    // read in the file
-    FILE *file = fopen(tokenizer_path, "rb");
-    if (!file) { fprintf(stderr, "couldn't load %s\n", tokenizer_path); exit(EXIT_FAILURE); }
-    if (fread(&t->max_token_length, sizeof(int), 1, file) != 1) { fprintf(stderr, "failed read\n"); exit(EXIT_FAILURE); }
+
+    // Read in the file
+    FILE* file = fopen(tokenizer_path, "rb");
+    if (!file) {
+        fprintf(stderr, "Couldn't load %s\n", tokenizer_path);
+        exit(EXIT_FAILURE);
+    }
+    if (fread(&t->max_token_length, sizeof(int), 1, file) != 1) {
+        fprintf(stderr, "Failed read\n");
+        exit(EXIT_FAILURE);
+    }
     int len;
     for (int i = 0; i < vocab_size; i++) {
-        if (fread(t->vocab_scores + i, sizeof(float), 1, file) != 1) { fprintf(stderr, "failed read\n"); exit(EXIT_FAILURE);}
-        if (fread(&len, sizeof(int), 1, file) != 1) { fprintf(stderr, "failed read\n"); exit(EXIT_FAILURE); }
-        t->vocab[i] = (char *)malloc(len + 1);
-        if (fread(t->vocab[i], len, 1, file) != 1) { fprintf(stderr, "failed read\n"); exit(EXIT_FAILURE); }
-        t->vocab[i][len] = '\0'; // add the string terminating token
+        if (fread(t->vocab_scores + i, sizeof(float), 1, file) != 1) {
+            fprintf(stderr, "Failed read\n");
+            exit(EXIT_FAILURE);
+        }
+        if (fread(&len, sizeof(int), 1, file) != 1) {
+            fprintf(stderr, "Failed read\n");
+            exit(EXIT_FAILURE);
+        }
+        t->vocab[i] = (char*)malloc(len + 1);
+        if (fread(t->vocab[i], len, 1, file) != 1) {
+            fprintf(stderr, "Failed read\n");
+            exit(EXIT_FAILURE);
+        }
+        t->vocab[i][len] = '\0'; // Add the string terminating token
     }
     fclose(file);
 
-    // malloc and sort the vocabulary
+    // Sort the vocabulary
     for (int i = 0; i < t->vocab_size; i++) {
         t->sorted_vocab[i].str = t->vocab[i];
         t->sorted_vocab[i].id = i;
     }
     qsort(t->sorted_vocab, t->vocab_size, sizeof(TokenIndex), compare_tokens);
+
+    // create a temporary buffer that will store merge candidates of always two consecutive tokens
+    // *2 for concat, +1 for null terminator +2 for UTF8 (in case max_token_length is 1)
+    t->str_buffer = malloc((t->max_token_length*2 +1 +2) * sizeof(char));
+}
+
+void save_tokenizer(Tokenizer* t, const char* save_path) {
+    FILE* file = fopen(save_path, "wb");
+    if (!file) {
+        fprintf(stderr, "Couldn't open %s for writing\n", save_path);
+        exit(EXIT_FAILURE);
+    }
+
+    fwrite(&t->max_token_length, sizeof(int), 1, file);
+    fwrite(&t->vocab_size, sizeof(int), 1, file);
+
+    for (int i = 0; i < t->vocab_size; i++) {
+        fwrite(&t->vocab_scores[i], sizeof(float), 1, file);
+        int len = strlen(t->vocab[i])+1;
+        fwrite(&len, sizeof(int), 1, file);
+        fwrite(t->vocab[i], len, 1, file);
+    }
+
+    // Save sorted_vocab
+    for (int i = 0; i < t->vocab_size; i++) {
+        int id = t->sorted_vocab[i].id;
+        fwrite(&id, sizeof(int), 1, file);
+    }
+
+    fclose(file);
+}
+
+void load_tokenizer(Tokenizer* t, const char* load_path) {
+    t->fd = open(load_path, O_RDONLY);
+    if (t->fd == -1) {
+        fprintf(stderr, "Couldn't open %s\n", load_path);
+        exit(EXIT_FAILURE);
+    }
+
+    // Get file size
+    t->mmap_size = lseek(t->fd, 0, SEEK_END);
+    lseek(t->fd, 0, SEEK_SET);
+
+    // Memory-map the file
+    t->mmap_ptr = mmap(NULL, t->mmap_size, PROT_READ, MAP_PRIVATE, t->fd, 0);
+    if (t->mmap_ptr == MAP_FAILED) {
+        fprintf(stderr, "mmap failed\n");
+        close(t->fd);
+        exit(EXIT_FAILURE);
+    }
+
+    // Map the data to Tokenizer structure
+    void* ptr = t->mmap_ptr;
+    t->max_token_length = *(int*)ptr;
+    ptr += sizeof(int);
+    t->vocab_size = *(int*)ptr;
+    ptr += sizeof(int);
+
+    printf("Allocating vocab: %zu bytes\n", t->vocab_size * sizeof(char*));
+    t->vocab = (char**)malloc(t->vocab_size * sizeof(char*));
+
+    printf("Allocating vocab_scores: %zu bytes\n", t->vocab_size * sizeof(float));
+    t->vocab_scores = (float*)malloc(t->vocab_size * sizeof(float));
+
+    printf("Allocating sorted_vocab: %zu bytes\n", t->vocab_size * sizeof(TokenIndex));
+    t->sorted_vocab = (TokenIndex*)malloc(t->vocab_size * sizeof(TokenIndex));
+
+    for (int i = 0; i < t->vocab_size; i++) {
+        t->vocab_scores[i] = *(float*)ptr;
+        ptr += sizeof(float);
+
+        int len = *(int*)ptr;
+        ptr += sizeof(int);
+
+        t->vocab[i] = (char*)ptr;
+        ptr += len;
+    }
+
+    for (int i = 0; i < t->vocab_size; i++) {
+        int id = *(int*)ptr;
+        ptr += sizeof(int);
+        t->sorted_vocab[i].str = t->vocab[id];
+        t->sorted_vocab[i].id = id;
+    }
+    printf("Loaded %lu bytes of tokenizer data [%lu]\n", ptr-(t->mmap_ptr), t->mmap_size);
+
+    // create a temporary buffer that will store merge candidates of always two consecutive tokens
+    // *2 for concat, +1 for null terminator +2 for UTF8 (in case max_token_length is 1)
+    printf("Allocating str_buffer: %zu bytes\n", (t->max_token_length*2 +1 +2) * sizeof(char));
+    t->str_buffer = malloc((t->max_token_length*2 +1 +2) * sizeof(char));
+
 }
 
 void free_tokenizer(Tokenizer* t) {
-    for (int i = 0; i < t->vocab_size; i++) { free(t->vocab[i]); }
+    if (t->mmap_ptr) {
+        munmap(t->mmap_ptr, t->mmap_size);
+        close(t->fd);
+    } else {
+        for (int i = 0; i < t->vocab_size; i++) {
+            free(t->vocab[i]);
+        }
+    }
     free(t->vocab);
     free(t->vocab_scores);
     free(t->sorted_vocab);
+    free(t->str_buffer);
 }
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////
 
 char* decode(Tokenizer* t, int prev_token, int token) {
     char *piece = t->vocab[token];
@@ -79,9 +197,6 @@ void encode(Tokenizer* t, char *text, int8_t bos, int8_t eos, int *tokens, int *
     // bos != 0 means prepend the BOS token (=1), eos != 0 means append the EOS token (=2)
     if (text == NULL) { fprintf(stderr, "cannot encode NULL text\n"); exit(EXIT_FAILURE); }
 
-    // create a temporary buffer that will store merge candidates of always two consecutive tokens
-    // *2 for concat, +1 for null terminator +2 for UTF8 (in case max_token_length is 1)
-    char* str_buffer = malloc((t->max_token_length*2 +1 +2) * sizeof(char));
     size_t str_len = 0;
 
     // start at 0 tokens
@@ -122,8 +237,8 @@ void encode(Tokenizer* t, char *text, int8_t bos, int8_t eos, int *tokens, int *
         }
 
         // append the current byte to the buffer
-        str_buffer[str_len++] = *c; // ++ is post-increment, incremented after this line
-        str_buffer[str_len] = '\0';
+        t->str_buffer[str_len++] = *c; // ++ is post-increment, incremented after this line
+        t->str_buffer[str_len] = '\0';
 
         // while the next character is a continuation byte, continue appending
         // but if there are too many of them, just stop to avoid overruning str_buffer size.
@@ -132,7 +247,7 @@ void encode(Tokenizer* t, char *text, int8_t bos, int8_t eos, int *tokens, int *
         }
 
         // ok c+1 is not a continuation byte, so we've read in a full codepoint
-        int id = str_lookup(str_buffer, t->sorted_vocab, t->vocab_size);
+        int id = str_lookup(t->str_buffer, t->sorted_vocab, t->vocab_size);
 
         if (id != -1) {
             // we found this codepoint in vocab, add it as a token
@@ -142,7 +257,7 @@ void encode(Tokenizer* t, char *text, int8_t bos, int8_t eos, int *tokens, int *
             // +3 is here because the first 3 vocab elements are <unk>, <s>, </s>
             // so the individual bytes only start at index 3
             for (int i=0; i < str_len; i++) {
-                tokens[(*n_tokens)++] = (unsigned char)str_buffer[i] + 3;
+                tokens[(*n_tokens)++] = (unsigned char)t->str_buffer[i] + 3;
             }
         }
         str_len = 0; // protect against a sequence of stray UTF8 continuation bytes
@@ -156,8 +271,8 @@ void encode(Tokenizer* t, char *text, int8_t bos, int8_t eos, int *tokens, int *
 
         for (int i=0; i < (*n_tokens-1); i++) {
             // check if we can merge the pair (tokens[i], tokens[i+1])
-            sprintf(str_buffer, "%s%s", t->vocab[tokens[i]], t->vocab[tokens[i+1]]);
-            int id = str_lookup(str_buffer, t->sorted_vocab, t->vocab_size);
+            sprintf(t->str_buffer, "%s%s", t->vocab[tokens[i]], t->vocab[tokens[i+1]]);
+            int id = str_lookup(t->str_buffer, t->sorted_vocab, t->vocab_size);
             if (id != -1 && t->vocab_scores[id] > best_score) {
                 // this merge pair exists in vocab! record its score and position
                 best_score = t->vocab_scores[id];
@@ -182,5 +297,4 @@ void encode(Tokenizer* t, char *text, int8_t bos, int8_t eos, int *tokens, int *
     // add optional EOS (=2) token, if desired
     if (eos) tokens[(*n_tokens)++] = 2;
 
-    free(str_buffer);
 }

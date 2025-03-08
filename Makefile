@@ -7,8 +7,9 @@ CFLAGS:=-g -Wall -c -O3
 LDFLAGS:=-lm
 
 test:	run runfull
-	./run stories260K.bin -z tok512.bin -t $(TEMP) -s $(SEED) -n $(NTOKENS) -i "Once upon"
 	./runfull stories260K.bin -z tok512.bin -t $(TEMP) -s $(SEED) -n $(NTOKENS) -i "Once upon"
+	./run stories260K.bin -z tok512.bin -t $(TEMP) -s $(SEED) -n $(NTOKENS) -i "Once upon"
+	./run stories260K.bin -t $(TEMP) -s $(SEED) -n $(NTOKENS) -i "Once upon"
 
 run:	run.c tokenizer.c tokenizer.h sampler.c sampler.h nnet.c nnet.h transformer.c transformer.h util.c util.h generate.c generate.h
 	gcc $(CFLAGS) transformer.c

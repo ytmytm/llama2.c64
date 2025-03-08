@@ -13,15 +13,25 @@
 void malloc_run_state(RunState* s, Config* p) {
     // we calloc instead of malloc to keep valgrind happy
     int kv_dim = (p->dim * p->n_kv_heads) / p->n_heads;
+    printf("Allocating x: %zu bytes\n", p->dim * sizeof(float));
     s->x = calloc(p->dim, sizeof(float));
+    printf("Allocating xb: %zu bytes\n", p->dim * sizeof(float));
     s->xb = calloc(p->dim, sizeof(float));
+    printf("Allocating xb2: %zu bytes\n", p->dim * sizeof(float));
     s->xb2 = calloc(p->dim, sizeof(float));
+    printf("Allocating hb: %zu bytes\n", p->hidden_dim * sizeof(float));
     s->hb = calloc(p->hidden_dim, sizeof(float));
+    printf("Allocating hb2: %zu bytes\n", p->hidden_dim * sizeof(float));
     s->hb2 = calloc(p->hidden_dim, sizeof(float));
+    printf("Allocating q: %zu bytes\n", p->dim * sizeof(float));
     s->q = calloc(p->dim, sizeof(float));
+    printf("Allocating key_cache: %zu bytes [TOOBIG]\n", p->n_layers * p->seq_len * kv_dim * sizeof(float));
     s->key_cache = calloc(p->n_layers * p->seq_len * kv_dim, sizeof(float));
+    printf("Allocating value_cache: %zu bytes [TOOBIG]\n", p->n_layers * p->seq_len * kv_dim * sizeof(float));
     s->value_cache = calloc(p->n_layers * p->seq_len * kv_dim, sizeof(float));
+    printf("Allocating att: %zu bytes [ALMOSTTOOBIG]\n", p->n_heads * p->seq_len * sizeof(float));
     s->att = calloc(p->n_heads * p->seq_len, sizeof(float));
+    printf("Allocating logits: %zu bytes\n", p->vocab_size * sizeof(float));
     s->logits = calloc(p->vocab_size, sizeof(float));
     // ensure all mallocs went fine
     if (!s->x || !s->xb || !s->xb2 || !s->hb || !s->hb2 || !s->q
@@ -81,6 +91,9 @@ void read_checkpoint(char* checkpoint, Config* config, TransformerWeights* weigh
     if (!file) { fprintf(stderr, "Couldn't open file %s\n", checkpoint); exit(EXIT_FAILURE); }
     // read in the config header
     if (fread(config, sizeof(Config), 1, file) != 1) { exit(EXIT_FAILURE); }
+
+    printf("dim: %d\n", config->dim);
+
     // negative vocab size is hacky way of signaling unshared weights. bit yikes.
     int shared_weights = config->vocab_size > 0 ? 1 : 0;
     config->vocab_size = abs(config->vocab_size);
