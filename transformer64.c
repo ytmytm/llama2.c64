@@ -70,7 +70,9 @@ void malloc_run_state(Transformer* t) {
     printf("Allocating hb2: %u bytes\n", p->hidden_dim * sizeof(float));
     s->hb2 = calloc(p->hidden_dim, sizeof(float));
     printf("Allocating q: %u bytes\n", p->dim * sizeof(float));
-    s->q = calloc(p->dim, sizeof(float));
+//    s->q = calloc(p->dim, sizeof(float));
+    s->q = reu_base;
+    reu_base += p->dim * sizeof(float);
     printf("Allocating key_cache: %lu bytes [TOOBIG]\n", p->n_layers * p->seq_len * kv_dim * sizeof(float));
 //    s->key_cache = calloc(p->n_layers * p->seq_len * kv_dim, sizeof(float));
     s->key_cache = reu_base;

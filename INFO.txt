@@ -13,4 +13,7 @@ nnet64.c
 - nnet64 matmul() potrzebuje przerobienia na pointery REU
     - i trzymać jeden pointer na xout, nie trzeba obliczać pozycji za każdym razem bo i tak zmienia się o 1
 - ?rozne miejsca na wyniki s->q, s->k, s->v (lokalne i REU) - zrobić 2 funkcje na matmul()?
-    - albo s->q przenieść do reu
+    + albo s->q przenieść do reu (przeniesione)
+
+test-nnet.c
+- ma szybszy matmul2 (operacje tylko na wskaźnikach)

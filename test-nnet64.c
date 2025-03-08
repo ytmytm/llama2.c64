@@ -16,12 +16,16 @@
 //#include "util.h"
 //#include "util64.c"
 
-void dump_matrix(float* xout, int d, const char* name) {
+void dump_matrix(REUPtr xout, int d, const char* name) {
 	printf("MATRIX:%s,%i\n",name,d);
 	int i;
+    float f;
 	for (i=0;i<d;i++) {
-		printf("%f",xout[i]);
+        REU_getf(xout, &f, sizeof(float));
+		printf("%f\t",f);
+        xout += sizeof(float);
 	}
+	printf("\n");
 }
 
 int main(void) {
@@ -72,20 +76,21 @@ int main(void) {
         // key and value point to the kv cache
 	// XXX offset for REU is *sizeof(float)!
         uint32_t loff = l * p->seq_len * kv_dim; // kv cache layer offset for convenience
-        s->k = s->key_cache + loff + pos * kv_dim; // XXX *sizeof(float)
-        s->v = s->value_cache + loff + pos * kv_dim; // XXX *sizeof(float)
+        s->k = s->key_cache + (loff + pos * kv_dim)*sizeof(float);
+        s->v = s->value_cache + (loff + pos * kv_dim)*sizeof(float);
 
         // qkv matmuls for this position
-	// s->q is local!
-	// s->xb too
-	// s->k, s->v not
+	// s->xb is local!
+	// s->q, s->k, s->v not
 	// w-> is only remote
 	// w-> ... '+' means *sizeof(float)
 //        matmul(s->q, s->xb, w->wq + l*dim*dim, dim, dim);
 //        matmul(s->k, s->xb, w->wk + l*dim*kv_dim, dim, kv_dim);
 //        matmul(s->v, s->xb, w->wv + l*dim*kv_dim, dim, kv_dim);
 
-
+    printf("pos=%i\tl=%i\n",pos,l);
+    s->xb[0]=1.0;
+    matmul(s->q, s->xb, w->wq + (l*dim*dim)*sizeof(float), dim, dim);
 	// dump xout (first+last parameter of matmul)
 	dump_matrix(s->q, dim, "SQ");
 

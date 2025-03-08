@@ -55,6 +55,7 @@ void matmul(float* xout, float* x, float* w, int n, int d) {
         float val = 0.0f;
         for (int j = 0; j < n; j++) {
             val += w[i * n + j] * x[j];
+//            printf("[%d,%d],[%f]*[%f]=%f\n",i,j,w[i * n + j],x[j],val);
         }
         xout[i] = val;
     }

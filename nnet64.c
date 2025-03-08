@@ -46,17 +46,29 @@ void softmax(float* x, int size) {
     }
 }
 
-void matmul(float* xout, float* x, float* w, int n, int d) {
+// xout is remote, x is local, w is remote, n/d are always dim
+void matmul(REUPtr xout, float* x, REUPtr w, uint8_t n, uint8_t d) {
     printf("matmul xout=%i,xin=%i:wsize=%i\n",4*d,4*n,4*d*n);
+    printf("dims n=%d,d=%d\n",n,d);
     // W (d,n) @ x (n,) -> xout (d,)
     // by far the most amount of time is spent inside this little function
-    int i;
-    for (i = 0; i < d; i++) {
-        float val = 0.0;
-        for (int j = 0; j < n; j++) {
-            val += w[i * n + j] * x[j];
+    REUPtr xo = xout;
+    float xof;
+    REUPtr wi = w;
+    float wif;
+    float *xi;
+    for (uint8_t i = 0; i < d; i++) {
+        xof = 0.0;
+        xi = x;
+        for (uint8_t j = 0; j < n; j++) {
+            REU_getf(wi, &wif, sizeof(float)); // XXX: can be faster if whole row is read once
+            xof += wif * (*xi);
+//            printf("[%d,%d],[%f]*[%f]=%f\n",i,j,wif,*xi,xof);
+            wi += sizeof(float);
+            xi++;
         }
-        xout[i] = val;
+        REU_putf(xo, &xof, sizeof(float)); // XXX: can be faster if whole row is written once
+        xo += sizeof(float);
     }
 }
 

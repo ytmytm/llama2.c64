@@ -51,9 +51,9 @@ typedef struct {
     float *xb2; // an additional buffer just for convenience (dim,)
     float *hb; // buffer for hidden dimension in the ffn (hidden_dim,)
     float *hb2; // buffer for hidden dimension in the ffn (hidden_dim,)
-    float *q; // query (dim,)
-    float *k; // key (dim,)
-    float *v; // value (dim,)
+    REUPtr q; // query (dim,) in REU for single matmul function
+    REUPtr k; // key (dim,) points into key_cache
+    REUPtr v; // value (dim,) points into value_cache
 //    float *att; // buffer for scores/attention values (n_heads, seq_len)
     REUPtr att; // buffer for scores/attention values (n_heads, seq_len)
     float *logits; // output logits
