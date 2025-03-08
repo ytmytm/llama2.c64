@@ -12,12 +12,9 @@ const unsigned char tokenizer_bin[] = {
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// doesn't work anymore, sorted_vocab_id / sorted_vocab_str unused
-// NEEDS to work again because tokenizations takes a lot of time now
-
 // https://github.com/gcc-mirror/gcc/blob/master/libiberty/bsearch.c
 char*
-bsearch (const void *key, const void *base0,
+bsearch (char *key, char **base0,
          size_t nmemb, size_t size,
          int16_t (*compar)(const char *, const char *))
 {
@@ -38,18 +35,17 @@ bsearch (const void *key, const void *base0,
 	return (NULL);
 }
 
-/// str_lookup - binary search of sorted vocab
-int16_t compare_tokens_x(const char* a, const char* b) {
-    printf("compare_tokens: %x %x\n", a, b);
+int16_t compare_tokens(const char* a, const char* b) {
     return strcmp((char*)a, *(char**)b);
 }
 
-int16_t str_lookup_x(char *str, Tokenizer *t) { 
-    char** res = (char**)bsearch(&str 
+/// str_lookup - binary search of sorted vocab
+int16_t str_lookup(char *str, Tokenizer *t) { 
+    char* res = bsearch(str 
     ,t->sorted_vocab_str
-    ,t->vocab_size, sizeof(char*), compare_tokens_x);
+    ,t->vocab_size, sizeof(char*), compare_tokens);
     if (res != NULL) {
-        int16_t index = res - t->sorted_vocab_str;
+        int16_t index = ((uint16_t)(res) - (uint16_t)(t->sorted_vocab_str)) / sizeof(char*);
         return t->sorted_vocab_id[index];
     }
     return -1;
@@ -130,15 +126,6 @@ char* decode(Tokenizer* t, int16_t prev_token, int16_t token) {
         piece = (char*)t->byte_pieces + byte_val * 2;
     }
     return piece;
-}
-
-int16_t str_lookup(char *str, Tokenizer *t) {
-    for (uint16_t i = 0; i < t->vocab_size; i++) {
-        if (strcmp(str, t->vocab[i]) == 0) {
-            return i;
-        }
-    }
-    return -1;
 }
 
 void encode(Tokenizer* t, char *text, int8_t bos, int8_t eos, int16_t *tokens, int16_t *n_tokens) {

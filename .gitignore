@@ -5,3 +5,4 @@
 *.prg
 *.asm
 *.int
+test-tokenizer
