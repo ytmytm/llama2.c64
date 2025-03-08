@@ -9,6 +9,7 @@
 // ----------------------------------------------------------------------------
 // neural net blocks; the dynamics of the Transformer
 
+//C64 todo/test
 void rmsnorm(float* o, float* x, float* weight, int size) {
     printf("rmsnorm :size=%i\n",4*size);
     // calculate sum of squares
@@ -25,6 +26,7 @@ void rmsnorm(float* o, float* x, float* weight, int size) {
     }
 }
 
+//C64 todo/test
 void softmax(float* x, int size) {
     printf("softmax :size=%i\n",4*size);
     // find max value (for numerical stability)
@@ -72,6 +74,7 @@ void matmul(REUPtr xout, float* x, REUPtr w, uint8_t n, uint8_t d) {
     }
 }
 
+//C64 todo/test
 float* forward(Transformer* transformer, int token, int pos) {
 
     // a few convenience variables
