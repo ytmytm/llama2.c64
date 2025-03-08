@@ -6,3 +6,4 @@
 *.asm
 *.int
 test-tokenizer
+log

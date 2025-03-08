@@ -13,6 +13,13 @@
 void malloc_run_state(RunState* s, Config* p) {
     // we calloc instead of malloc to keep valgrind happy
     int kv_dim = (p->dim * p->n_kv_heads) / p->n_heads;
+    printf("p->dim=%d\n", p->dim);
+    printf("p->n_heads=%d\n", p->n_heads);
+    printf("p->n_kv_heads=%d\n", p->n_kv_heads);
+    printf("kv_dim=%d\n", kv_dim);
+    printf("p->hidden_dim=%d\n", p->hidden_dim);
+    printf("p->n_layers=%d\n",p->n_layers);    
+    printf("p->seq_len=%d\n", p->seq_len);
     printf("Allocating x: %zu bytes\n", p->dim * sizeof(float));
     s->x = calloc(p->dim, sizeof(float));
     printf("Allocating xb: %zu bytes\n", p->dim * sizeof(float));
@@ -108,6 +115,32 @@ void read_checkpoint(char* checkpoint, Config* config, TransformerWeights* weigh
     if (*data == MAP_FAILED) { fprintf(stderr, "mmap failed!\n"); exit(EXIT_FAILURE); }
     float* weights_ptr = *data + sizeof(Config)/sizeof(float);
     memory_map_weights(weights, config, weights_ptr, shared_weights);
+    //
+    // write out config in 16-bit ints
+    file = fopen("config.bin", "wb");
+    int16_t i16;
+    i16 = config->dim;
+    fwrite(&i16, sizeof(int16_t), 1, file);
+    i16 = config->hidden_dim;
+    fwrite(&i16, sizeof(int16_t), 1, file);
+    i16 = config->n_layers;
+    fwrite(&i16, sizeof(int16_t), 1, file);
+    i16 = config->n_heads;
+    fwrite(&i16, sizeof(int16_t), 1, file);
+    i16 = config->n_kv_heads;
+    fwrite(&i16, sizeof(int16_t), 1, file);
+    // could skip vocab_size, it's in tokenizer.bin
+    i16 = config->vocab_size;
+    fwrite(&i16, sizeof(int16_t), 1, file);
+    i16 = config->seq_len;
+    fwrite(&i16, sizeof(int16_t), 1, file);
+    i16 = shared_weights;
+    fwrite(&i16, sizeof(int16_t), 1, file);
+    fclose(file);
+    // info about weights
+    printf("skip %lu bytes from weights.bin\n",sizeof(Config));
+    printf("weights_ptr=%x %x %x\n",((unsigned char*)weights_ptr)[0],((unsigned char*)weights_ptr)[1],((unsigned char*)weights_ptr)[2]);
+    printf("shared_weights=%d\n",shared_weights);
 }
 
 void build_transformer(Transformer *t, char* checkpoint_path) {
