@@ -7,17 +7,22 @@
 #include "tokenizer64.h"
 
 const unsigned char tokenizer_bin[] = {
-    #embed "tokenizer.bin"
+    #embed "tokenizer2.bin"
 };
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// doesn't work anymore, sorted_vocab_id / sorted_vocab_str unused
+// NEEDS to work again because tokenizations takes a lot of time now
 
 // https://github.com/gcc-mirror/gcc/blob/master/libiberty/bsearch.c
 char*
 bsearch (const void *key, const void *base0,
          size_t nmemb, size_t size,
-         int32_t (*compar)(const void *, const void *))
+         int16_t (*compar)(const char *, const char *))
 {
 	const char *base = (const char *) base0;
-	int lim, cmp;
+	int16_t lim, cmp;
 	const char *p;
 
 	for (lim = nmemb; lim != 0; lim >>= 1) {
@@ -33,75 +38,88 @@ bsearch (const void *key, const void *base0,
 	return (NULL);
 }
 
-// ----------------------------------------------------------------------------
-// The Byte Pair Encoding (BPE) Tokenizer that translates strings <-> tokens
-
-// needed for qsorting the vocabulary and bsearch
-int32_t compare_tokens(const void* a, const void* b) {
-    return strcmp(((TokenIndex*)a)->str, ((TokenIndex*)b)->str); // XXX pointers point to REU memory
+/// str_lookup - binary search of sorted vocab
+int16_t compare_tokens_x(const char* a, const char* b) {
+    printf("compare_tokens: %x %x\n", a, b);
+    return strcmp((char*)a, *(char**)b);
 }
 
-void load_tokenizer(Tokenizer* t, const char* load_path) {
-
-    t->mmap_size = 8791; // tokenizer.bin filesize
-    t->mmap_size = sizeof(tokenizer_bin);
-//    t->mmap_ptr = (void*)0; // REU base address
-    t->mmap_ptr = (char*)tokenizer_bin;
-
-    // Map the data to Tokenizer structure
-    char* ptr = t->mmap_ptr;
-    printf("ptr: %lu\n", ptr);
-    t->max_token_length = *(uint32_t*)ptr; // XXX: get REU byte (?int is 32 or 16?)
-    ptr += sizeof(uint32_t);
-    t->vocab_size = *(uint32_t*)ptr; // XXX: get REU byte (?int is 32 or 16?)
-    ptr += sizeof(uint32_t);
-    printf("ptr: %lu\n", ptr);
-
-    printf("max_token_length: %lu\n", t->max_token_length);
-    printf("vocab: %lu\n", t->vocab_size);
-
-    printf("Allocating vocab: %lu bytes\n", t->vocab_size * sizeof(char*));
-    t->vocab = (char**)malloc(t->vocab_size * sizeof(char*));
-
-    printf("Allocating vocab_scores: %lu bytes\n", t->vocab_size * sizeof(float));
-    t->vocab_scores = (float*)malloc(t->vocab_size * sizeof(float));
-
-    printf("Allocating sorted_vocab: %lu bytes\n", t->vocab_size * sizeof(TokenIndex));
-    t->sorted_vocab = (TokenIndex*)malloc(t->vocab_size * sizeof(TokenIndex));
-
-    printf("ptr: %x\n", ptr);
-    for (uint32_t i = 0; i < t->vocab_size; i++) {
-        t->vocab_scores[i] = *(float*)ptr; // XXX: get REU byte (?float is 32 or 16?)
-//        printf("%f:%f\t", t->vocab_scores[i],*(float*)ptr);
-        ptr += sizeof(float);
-
-        uint32_t len = *(uint32_t*)ptr; // XXX: get REU byte (?int is 32 or 16?)
-//        printf("%lu:%lu\t", len, *(uint32_t*)ptr);
-        ptr += sizeof(uint32_t);
-
-        t->vocab[i] = (char*)ptr; // XXX: get REU byte (?char* is 32 or 16?)
-//        printf("[%s]\n", t->vocab[i]);
-        ptr += len;
+int16_t str_lookup_x(char *str, Tokenizer *t) { 
+    char** res = (char**)bsearch(&str 
+    ,t->sorted_vocab_str
+    ,t->vocab_size, sizeof(char*), compare_tokens_x);
+    if (res != NULL) {
+        int16_t index = res - t->sorted_vocab_str;
+        return t->sorted_vocab_id[index];
     }
-
-    for (int i = 0; i < t->vocab_size; i++) {
-        int32_t id = *(uint32_t*)ptr; // XXX: get REU byte (?int is 32 or 16?)
-        ptr += sizeof(int32_t);
-        t->sorted_vocab[i].str = t->vocab[id];
-        t->sorted_vocab[i].id = id;
-    }
-    printf("Loaded %lu bytes of tokenizer data [%lu]\n", (uint32_t)ptr-(uint32_t)(t->mmap_ptr), t->mmap_size);
-
-    // create a temporary buffer that will store merge candidates of always two consecutive tokens
-    // *2 for concat, +1 for null terminator +2 for UTF8 (in case max_token_length is 1)
-    printf("Allocating str_buffer: %lu bytes\n", (t->max_token_length*2 +1 +2) * sizeof(char));
-    t->str_buffer = malloc((t->max_token_length*2 +1 +2) * sizeof(char));
-
+    return -1;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
-char* decode(Tokenizer* t, int32_t prev_token, int32_t token) {
+
+// ----------------------------------------------------------------------------
+// The Byte Pair Encoding (BPE) Tokenizer that translates strings <-> tokens
+
+void load_tokenizer(Tokenizer* t, const char* load_path) {
+
+    t->mmap_size = sizeof(tokenizer_bin);
+    t->mmap_ptr = (char*)tokenizer_bin;
+
+    t->max_token_length = 7;
+
+    // Map the data to Tokenizer structure
+    char* ptr = t->mmap_ptr;
+    printf("ptr: %x\n", ptr);
+
+    t->vocab_size = *(uint16_t*)ptr; // XXX: get REU byte (?int is 32 or 16?)
+    ptr += sizeof(uint16_t);
+    printf("ptr: %x\n", ptr);
+
+    printf("max_token_length: %d\n", t->max_token_length);
+    printf("vocab: %d\n", t->vocab_size);
+
+    printf("Allocating vocab: %lu bytes\n", t->vocab_size * sizeof(char*));
+    t->vocab = (char**)malloc(t->vocab_size * sizeof(char*));
+
+    printf("Allocating sorted vocab: %lu bytes\n", t->vocab_size * sizeof(char*));
+    t->sorted_vocab_str = (char**)malloc(t->vocab_size * sizeof(char*));
+
+    t->vocab_scores = (float*)ptr;
+    ptr += t->vocab_size * sizeof(float);
+    printf("ptr: %x\n", ptr);
+    t->vocab_len = (uint8_t*)ptr;
+    ptr += t->vocab_size * sizeof(uint8_t);
+    printf("ptr: %x\n", ptr);
+    t->sorted_vocab_id = (uint16_t*)ptr;
+    ptr += t->vocab_size * sizeof(uint16_t);
+    printf("ptr: %x\n", ptr);
+    for (uint16_t i=0; i < t->vocab_size; i++) {
+        t->vocab[i] = (char*)ptr;
+        ptr +=  t->vocab_len[i];
+//        printf("%f\t%d\t[%s]\n", t->vocab_scores[i],t->vocab_len[i],t->vocab[i]);
+    }
+    printf("ptr: %x\n", ptr);
+    for (uint16_t i=0; i < t->vocab_size; i++) {
+        t->sorted_vocab_str[i] = t->vocab[t->sorted_vocab_id[i]];
+    }
+
+    printf("Loaded %x bytes of tokenizer data [%x]\n", (uint16_t)ptr-(uint16_t)(t->mmap_ptr), t->mmap_size);
+
+    // create a temporary buffer that will store merge candidates of always two consecutive tokens
+    // *2 for concat, +1 for null terminator +2 for UTF8 (in case max_token_length is 1)
+    printf("Allocating str_buffer: %d bytes\n", (t->max_token_length*2 +1 +2) * sizeof(char));
+    t->str_buffer = malloc((t->max_token_length*2 +1 +2) * sizeof(char));
+
+    for (uint16_t i = 0; i < 256; i++) {
+        t->byte_pieces[i * 2] = (unsigned char)i;
+        t->byte_pieces[i * 2 + 1] = '\0';
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+
+char* decode(Tokenizer* t, int16_t prev_token, int16_t token) {
     char *piece = t->vocab[token]; // XXX copy that string from REU into buffer
     // following BOS (1) token, sentencepiece decoder strips any leading whitespace (see PR #89)
     if (prev_token == 1 && piece[0] == ' ') { piece++; }
@@ -114,14 +132,16 @@ char* decode(Tokenizer* t, int32_t prev_token, int32_t token) {
     return piece;
 }
 
-int32_t str_lookup(char *str, TokenIndex *sorted_vocab, uint32_t vocab_size) {
-    // efficiently find the perfect match for str in vocab, return its index or -1 if not found
-    TokenIndex tok = { .str = str }; // acts as the key to search for
-    TokenIndex *res = (TokenIndex*)bsearch(&tok, sorted_vocab, vocab_size, sizeof(TokenIndex), compare_tokens);
-    return res != NULL ? res->id : -1;
+int16_t str_lookup(char *str, Tokenizer *t) {
+    for (uint16_t i = 0; i < t->vocab_size; i++) {
+        if (strcmp(str, t->vocab[i]) == 0) {
+            return i;
+        }
+    }
+    return -1;
 }
 
-void encode(Tokenizer* t, char *text, int8_t bos, int8_t eos, int32_t *tokens, int *n_tokens) {
+void encode(Tokenizer* t, char *text, int8_t bos, int8_t eos, int16_t *tokens, int16_t *n_tokens) {
     // encode the string text (input) into an upper-bound preallocated tokens[] array
     // bos != 0 means prepend the BOS token (=1), eos != 0 means append the EOS token (=2)
     if (text == NULL) { printf("cannot encode NULL text\n"); exit(1); }
@@ -139,7 +159,7 @@ void encode(Tokenizer* t, char *text, int8_t bos, int8_t eos, int32_t *tokens, i
     // TODO: pretty sure this isn't correct in the general case but I don't have the
     // energy to read more of the sentencepiece code to figure out what it's doing
     if (text[0] != '\0') {
-        int32_t dummy_prefix = str_lookup((char*)" ", t->sorted_vocab, t->vocab_size);
+        int16_t dummy_prefix = str_lookup((char*)" ", t);
         tokens[(*n_tokens)++] = dummy_prefix;
     }
 
@@ -176,7 +196,7 @@ void encode(Tokenizer* t, char *text, int8_t bos, int8_t eos, int32_t *tokens, i
         }
 
         // ok c+1 is not a continuation byte, so we've read in a full codepoint
-        uint32_t id = str_lookup(t->str_buffer, t->sorted_vocab, t->vocab_size);
+        int16_t id = str_lookup(t->str_buffer, t);
 
         if (id != -1) {
             // we found this codepoint in vocab, add it as a token
@@ -185,7 +205,7 @@ void encode(Tokenizer* t, char *text, int8_t bos, int8_t eos, int32_t *tokens, i
             // byte_fallback encoding: just encode each byte as a token
             // +3 is here because the first 3 vocab elements are <unk>, <s>, </s>
             // so the individual bytes only start at index 3
-            for (int i=0; i < str_len; i++) {
+            for (int16_t i=0; i < str_len; i++) {
                 tokens[(*n_tokens)++] = (unsigned char)t->str_buffer[i] + 3;
             }
         }
@@ -194,14 +214,20 @@ void encode(Tokenizer* t, char *text, int8_t bos, int8_t eos, int32_t *tokens, i
 
     // merge the best consecutive pair each iteration, according the scores in vocab_scores
     while (1) {
-        float best_score = -0.0000000001;
-        int32_t best_id = -1;
-        int32_t best_idx = -1;
+//        float best_score = -0.0000000001;
+        float best_score = -1000000000;
+        int16_t best_id = -1;
+        int16_t best_idx = -1;
 
-        for (int i=0; i < (*n_tokens-1); i++) {
+        for (int16_t i=0; i < (*n_tokens-1); i++) {
             // check if we can merge the pair (tokens[i], tokens[i+1])
             sprintf(t->str_buffer, "%s%s", t->vocab[tokens[i]], t->vocab[tokens[i+1]]);
-            int32_t id = str_lookup(t->str_buffer, t->sorted_vocab, t->vocab_size);
+//            printf("merging %s and %s into %s\n", t->vocab[tokens[i]], t->vocab[tokens[i+1]], t->str_buffer);
+
+            int16_t id = str_lookup(t->str_buffer, t);
+            if (id != -1) {
+ //               printf("found at %d\n", id);
+            }
             if (id != -1 && t->vocab_scores[id] > best_score) {
                 // this merge pair exists in vocab! record its score and position
                 best_score = t->vocab_scores[id];
@@ -217,7 +243,7 @@ void encode(Tokenizer* t, char *text, int8_t bos, int8_t eos, int32_t *tokens, i
         // merge the consecutive pair (best_idx, best_idx+1) into new token best_id
         tokens[best_idx] = best_id;
         // delete token at position best_idx+1, shift the entire sequence back 1
-        for (int i = best_idx+1; i < (*n_tokens-1); i++) {
+        for (int16_t i = best_idx+1; i < (*n_tokens-1); i++) {
             tokens[i] = tokens[i+1];
         }
         (*n_tokens)--; // token length decreased

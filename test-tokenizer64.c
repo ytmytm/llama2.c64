@@ -31,10 +31,10 @@ int main(void) {
     load_tokenizer(&tokenizer, tokenizer_path);
 
     // encode the (string) prompt into tokens sequence
-    int num_prompt_tokens = 0;
-    int32_t* prompt_tokens;
-    int32_t token;
-    int32_t next;
+    int16_t num_prompt_tokens = 0;
+    int16_t* prompt_tokens;
+    int16_t token;
+    int16_t next;
     char *piece;
 
     /* test 1 */
@@ -43,8 +43,8 @@ int main(void) {
 
     printf("prompt: %s\n", prompt);
     printf("Allocating generate: prompt_tokens %u bytes\n", (strlen(prompt)+3) * sizeof(int32_t));
-    prompt_tokens = (int32_t*)malloc((strlen(prompt)+3) * sizeof(int32_t)); // +3 for '\0', ?BOS, ?EOS
-    const int32_t test1_expected[] = { 1, 403, 407, 261, 378 };
+    prompt_tokens = (int16_t*)malloc((strlen(prompt)+3) * sizeof(int16_t)); // +3 for '\0', ?BOS, ?EOS
+    const int16_t test1_expected[] = { 1, 403, 407, 261, 378 };
 
     encode(&tokenizer, prompt, 1, 0, prompt_tokens, &num_prompt_tokens);
     printf("prompt_tokens: %u\n", num_prompt_tokens);
@@ -52,11 +52,11 @@ int main(void) {
         printf("something is wrong, expected 5 prompt tokens\n");
     }
     for (int i = 0; i < 5; i++) {
-        printf("%ld ", prompt_tokens[i]);
+        printf("%d ", prompt_tokens[i]);
     }
     for (int i = 0; i < 5; i++) {
         if (prompt_tokens[i] != test1_expected[i]) {
-            printf("something is wrong, expected prompt_tokens[%d] %ld == %ld\n", i, prompt_tokens[i], test1_expected[i]);
+            printf("something is wrong, expected prompt_tokens[%d] %d == %d\n", i, prompt_tokens[i], test1_expected[i]);
 //            exit(1);
         }
     }
@@ -78,20 +78,20 @@ int main(void) {
 
     printf("prompt: %s\n", prompt);
     printf("Allocating generate: prompt_tokens %u bytes\n", (strlen(prompt)+3) * sizeof(int32_t));
-    prompt_tokens = (int32_t*)malloc((strlen(prompt)+3) * sizeof(int32_t)); // +3 for '\0', ?BOS, ?EOS
-    const int32_t test2_expected[] = { 1, 291, 276, 410, 293, 261, 270, 277, 372, 353, 261, 270, 290, 421, 426, 342, 280, 388, 312, 352, 293, 299, 262, 379  };
+    prompt_tokens = (int16_t*)malloc((strlen(prompt)+3) * sizeof(int16_t)); // +3 for '\0', ?BOS, ?EOS
+    const int16_t test2_expected[] = { 1, 291, 276, 410, 293, 261, 270, 277, 372, 353, 261, 270, 290, 421, 426, 342, 280, 388, 312, 352, 293, 299, 262, 379  };
     encode(&tokenizer, prompt, 1, 0, prompt_tokens, &num_prompt_tokens);
     printf("prompt_tokens: %u\n", num_prompt_tokens);
     if (num_prompt_tokens != 24) {
         printf("something is wrong, expected 24 prompt tokens\n");
     }
     for (int i = 0; i < 24; i++) {
-        printf("%ld ", prompt_tokens[i]);
+        printf("%d ", prompt_tokens[i]);
     }
     printf("\n");
     for (int i = 0; i < 24; i++) {
         if (prompt_tokens[i] != test2_expected[i]) {
-            printf("something is wrong, expected prompt_tokens[%d] %ld == %ld\n", i, prompt_tokens[i], test2_expected[i]);
+            printf("something is wrong, expected prompt_tokens[%d] %d == %d\n", i, prompt_tokens[i], test2_expected[i]);
 //            exit(1);
         }
     }
@@ -128,7 +128,7 @@ int main(void) {
 
     printf("test6: decode directly encoded\n");
     for (int i = 0; i < num_prompt_tokens; i++) {
-        printf("%u:%ld:[%s]\n", i, prompt_tokens[i], tokenizer.vocab[prompt_tokens[i]]);
+        printf("%u:%d:[%s]\n", i, prompt_tokens[i], tokenizer.vocab[prompt_tokens[i]]);
 //        printf("%s", tokenizer.vocab[prompt_tokens[i]]);
     }
     printf("\n");

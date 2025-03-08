@@ -98,20 +98,30 @@ void save_tokenizer(Tokenizer* t, const char* save_path) {
         exit(EXIT_FAILURE);
     }
 
-    fwrite(&t->max_token_length, sizeof(int), 1, file);
-    fwrite(&t->vocab_size, sizeof(int), 1, file);
+    uint8_t i8;
+    uint16_t i16;
+    i16 = t->vocab_size; // XXX vocab_size can be #defined?
+//    fwrite(&t->max_token_length, sizeof(int), 1, file); // not needed
+//    fwrite(&t->vocab_size, sizeof(int), 1, file);
+    fwrite(&i16, sizeof(uint16_t), 1, file);
 
     for (int i = 0; i < t->vocab_size; i++) {
         fwrite(&t->vocab_scores[i], sizeof(float), 1, file);
-        int len = strlen(t->vocab[i])+1;
-        fwrite(&len, sizeof(int), 1, file);
-        fwrite(t->vocab[i], len, 1, file);
     }
-
-    // Save sorted_vocab
+    for (int i = 0; i < t->vocab_size; i++) {
+        int len = strlen(t->vocab[i])+1;
+        i8 = len;
+        fwrite(&i8, sizeof(uint8_t), 1, file);
+    }
     for (int i = 0; i < t->vocab_size; i++) {
         int id = t->sorted_vocab[i].id;
-        fwrite(&id, sizeof(int), 1, file);
+        i16 = id;
+        fwrite(&i16, sizeof(uint16_t), 1, file);
+    }
+    for (int i = 0; i < t->vocab_size; i++) {
+        int len = strlen(t->vocab[i])+1;
+        i16 = len;
+        fwrite(t->vocab[i], len, 1, file);
     }
 
     fclose(file);
