@@ -118,6 +118,7 @@ int main(int argc, char *argv[]) {
         s->v = s->value_cache + loff + pos * kv_dim; // XXX *sizeof(float)
 
 	s->xb[0]=1.0;
+        s->xb[1]=0;
         matmul(s->q, s->xb, w->wq + l*dim*dim, dim, dim);
 	dump_matrix(s->q, dim, "SQ-1.0");
 

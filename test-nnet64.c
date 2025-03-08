@@ -17,7 +17,7 @@
 //#include "util64.c"
 
 void dump_matrix(REUPtr xout, int d, const char* name) {
-	printf("MATRIX:%s,%i\n",name,d);
+	printf("MATRIX:%s,%d\n",name,d);
 	int i;
     float f;
 	for (i=0;i<d;i++) {
@@ -88,11 +88,41 @@ int main(void) {
 //        matmul(s->k, s->xb, w->wk + l*dim*kv_dim, dim, kv_dim);
 //        matmul(s->v, s->xb, w->wv + l*dim*kv_dim, dim, kv_dim);
 
-    printf("pos=%i\tl=%i\n",pos,l);
+    printf("pos=%d\tl=%d\n",pos,l);
     s->xb[0]=1.0;
     matmul(s->q, s->xb, w->wq + (l*dim*dim)*sizeof(float), dim, dim);
 	// dump xout (first+last parameter of matmul)
 	dump_matrix(s->q, dim, "SQ");
+
+	s->xb[0]=1.0;
+	s->xb[1]=0.5;
+    matmul(s->q, s->xb, w->wq + (l*dim*dim)*sizeof(float), dim, dim);
+	dump_matrix(s->q, dim, "SQ-1.0-0.5");
+
+    matmul(s->k, s->xb, w->wk + (l*dim*kv_dim)*sizeof(float), dim, kv_dim);
+	dump_matrix(s->k, dim, "SK");
+
+    matmul(s->v, s->xb, w->wv + (l*dim*kv_dim)*sizeof(float), dim, kv_dim);
+	dump_matrix(s->v, dim, "SV");
+
+	pos = 5;
+	l = 6;
+
+	printf("pos=%d\tl=%d\n",pos,l);
+
+	loff = l * p->seq_len * kv_dim; // kv cache layer offset for convenience
+    s->k = s->key_cache + (loff + pos * kv_dim)*sizeof(float); // XXX *sizeof(float)
+    s->v = s->value_cache + (loff + pos * kv_dim)*sizeof(float); // XXX *sizeof(float)
+
+	s->xb[0]=1.0;
+    s->xb[1]=0;
+    matmul(s->q, s->xb, w->wq + (l*dim*dim)*sizeof(float), dim, dim);
+	dump_matrix(s->q, dim, "SQ-1.0");
+
+	s->xb[0]=1.0;
+    s->xb[1]=0.5;
+    matmul(s->q, s->xb, w->wq + (l*dim*dim)*sizeof(float), dim, dim);
+	dump_matrix(s->q, dim, "SQ-1.0-0.5");
 
     return 0;
 }
