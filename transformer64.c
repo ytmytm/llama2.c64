@@ -9,6 +9,43 @@ const unsigned char config_bin[] = {
 };
 
 // ----------------------------------------------------------------------------
+// REU functions (access to transformer weights)
+
+struct REU
+{
+    volatile uint8_t status;
+    volatile uint8_t command;
+    volatile uint16_t c64_base;
+    volatile uint16_t reu_base;
+    volatile uint8_t reu_base_bank;
+    volatile uint16_t length;
+    volatile uint8_t irq;
+    volatile uint8_t control;
+};
+
+#define reu     (*((struct REU *)0xdf00))
+
+void REU_init() {
+    reu.control = 0; // increment both addresses
+}
+
+void REU_getf(REUPtr ptr, volatile float* out, uint16_t size) {
+    reu.c64_base = (uint16_t)out;
+    reu.reu_base = (uint16_t)(ptr & 0xFFFF);
+    reu.reu_base_bank = (uint8_t)((ptr >> 16) & 0xFF);
+    reu.length = size;
+    reu.command = 0x91; // read from REU, execute immediately
+}
+
+void REU_putf(REUPtr ptr, volatile float* in, uint16_t size) {
+    reu.c64_base = (uint16_t)in;
+    reu.reu_base = (uint16_t)(ptr & 0xFFFF);
+    reu.reu_base_bank = (uint8_t)((ptr >> 16) & 0xFF);
+    reu.length = size;
+    reu.command = 0x90; // write to REU, execute immediately
+}
+
+// ----------------------------------------------------------------------------
 // Transformer model
 
 void malloc_run_state(Transformer* t) {
@@ -69,6 +106,7 @@ void memory_map_weights(Transformer* t) {
     w->rms_att_weight = ptr;
     ptr += sizeof(float) * n_layers * p->dim;
     w->wq = ptr;
+    printf("wq(1)=%lu\n", w->wq);
     ptr += sizeof(float) * n_layers * p->dim * (p->n_heads * head_size);
     w->wk = ptr;
     ptr += sizeof(float) * n_layers * p->dim * (p->n_kv_heads * head_size);
@@ -96,8 +134,19 @@ void memory_map_weights(Transformer* t) {
 void load_transformer(Transformer *t) {
 
     t->config = (Config64*) config_bin;
+    REU_init();
+
+//    REU_getf((uint32_t)0x20500, (float*)(0x0400), 1024);
 
     memory_map_weights(t);
     // allocate the RunState buffers
     malloc_run_state(t);
+
+    volatile float f;
+    f = 0.0;
+    printf("wq(2)=%lu\n", t->weights.wq);
+    REU_getf(t->weights.wq+sizeof(float)*0, &f, sizeof(float));
+    printf("wq[0]=%f\n", f);
+    REU_getf(t->weights.wq+sizeof(float)*3, &f, sizeof(float));
+    printf("wq[3]=%f\n", f);
 }

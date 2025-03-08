@@ -148,6 +148,9 @@ void build_transformer(Transformer *t, char* checkpoint_path) {
     read_checkpoint(checkpoint_path, &t->config, &t->weights, &t->fd, &t->data, &t->file_size);
     // allocate the RunState buffers
     malloc_run_state(&t->state, &t->config);
+
+    printf("wq[0]=%f\n", t->weights.wq[0]);
+    printf("wq[3]=%f\n", t->weights.wq[3]);
 }
 
 void free_transformer(Transformer* t) {
