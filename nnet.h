@@ -12,6 +12,6 @@
 void softmax(float* x, int size);
 
 // generate
-float* forward(Transformer* transformer, int token, int pos);
+float *forward(Transformer *transformer, int token, int pos);
 
 #endif // NNET_H

@@ -5,6 +5,10 @@
 #include <stdio.h>
 
 #include "nnet64.h"
+#include "nnet.h"
+
+void dump_matrix(REUPtr xout, int d, const char* name);
+void dump_matrix_local(float* xout, int d, const char* name);
 
 // ----------------------------------------------------------------------------
 // neural net blocks; the dynamics of the Transformer
@@ -18,11 +22,9 @@ void rmsnorm(float* o, float* x, REUPtr weight, uint8_t size) {
     for (uint8_t j = 0; j < size; j++) {
         ss += x[j] * x[j];
     }
-    printf("SS=%f\t",ss);
     ss /= size;
     ss += 0.00001;
     ss = 1.0 / sqrt(ss);
-    printf("NORMALIZED SS=%f\n",ss);
     // normalize and scale
     for (uint8_t j = 0; j < size; j++) {
         REU_getf(wi, &wif, sizeof(float)); // XXX: can be faster if whole row is read once into weights[size] then use weights[j] instead of wif
@@ -71,8 +73,8 @@ void softmax(REUPtr x, uint16_t size) {
 
 // xout is remote, x is local, w is remote, n/d are always dim
 void matmul(REUPtr xout, float* x, REUPtr w, uint8_t n, uint8_t d) {
-    printf("MATMUL XOUT=%d,XIN=%d:WSIZE=%d\n",4*d,4*n,(uint16_t)4*d*n);
-    printf("DIMS N=%d,D=%d\n",n,d);
+//    printf("MATMUL XOUT=%d,XIN=%d:WSIZE=%d\n",4*d,4*n,(uint16_t)4*d*n);
+    printf("MATMUL N=%d,D=%d\n",n,d);
     // W (d,n) @ x (n,) -> xout (d,)
     // by far the most amount of time is spent inside this little function
     REUPtr xo = xout;
@@ -97,8 +99,8 @@ void matmul(REUPtr xout, float* x, REUPtr w, uint8_t n, uint8_t d) {
 
 // xout is local, x is local, w is remote, n/d are always dim
 void matmul_l(float* xout, float* x, REUPtr w, uint8_t n, uint8_t d) {
-    printf("MATMUL-L XOUT=%d,XIN=%d:WSIZE=%d\n",4*d,4*n,(uint16_t)4*d*n);
-    printf("DIMS N=%d,D=%d\n",n,d);
+//    printf("MATMUL-L XOUT=%d,XIN=%d:WSIZE=%d\n",4*d,4*n,(uint16_t)4*d*n);
+    printf("MATMUL-L DIMS N=%d,D=%d\n",n,d);
     // W (d,n) @ x (n,) -> xout (d,)
     // by far the most amount of time is spent inside this little function
     float *xo = xout;
@@ -119,8 +121,46 @@ void matmul_l(float* xout, float* x, REUPtr w, uint8_t n, uint8_t d) {
     }
 }
 
+void rope(uint8_t dim, RunState64 *s, uint16_t head_size, uint16_t pos, uint16_t kv_dim)
+{
+    // RoPE relative positional encoding: complex-valued rotate q and k in each head
+    printf("ROPE: %d\n", dim);
+    REUPtr vec = s->q; // the vector to rotate (query or key)
+    float vi[2];
+    float vo[2];
+    for (uint8_t i = 0; i < dim; i += 2)
+    {
+        int head_dim = i % head_size;
+        float val = pos * 1.0 / pow(10000.0, head_dim / (float)head_size);
+        float fcr = cos(val);
+        float fci = sin(val);
+        uint8_t rotn = i < kv_dim ? 2 : 1; // how many vectors? 2 = q & k, 1 = q only
+        if (i == 0)
+            vec = s->q; // query
+        if (i == 2)
+            vec = s->k; // key
+        if (i > 2)
+            vec += 2 * sizeof(float); // next key vector
+//        if (0)
+        { // XXX64: oscar64 hangs here if this is not commented out
+            for (uint8_t v = 0; v < rotn; v++)
+            {
+                REU_getf(vec, &vi[0], 2 * sizeof(float));
+                vo[0] = vi[0] * fcr - vi[1] * fci;
+                vo[1] = vi[0] * fci + vi[1] * fcr;
+                REU_putf(vec, &vo[0], 2 * sizeof(float));
+                //                float* vec = v == 0 ? s->q : s->k; // the vector to rotate (query or key) // XXX64: all of these are remote
+                //                float v0 = vec[i];
+                //                float v1 = vec[i+1];
+                //                vec[i]   = v0 * fcr - v1 * fci;
+                //                vec[i+1] = v0 * fci + v1 * fcr;
+            }
+        }
+    }
+}
+
 //C64 todo/test
-float* forward(Transformer* transformer, int token, int pos) {
+float* forward(Transformer* transformer, uint16_t token, uint16_t pos) {
 
     // a few convenience variables
     Config64* p = transformer->config;
@@ -128,11 +168,11 @@ float* forward(Transformer* transformer, int token, int pos) {
     RunState64* s = &transformer->state;
     float *x = s->x; // XXX64: x, s->x local
     // XXX64: some (all) of these could be uint16_t (like all config values)
-    int dim = p->dim;
-    int kv_dim = (p->dim * p->n_kv_heads) / p->n_heads;
-    int kv_mul = p->n_heads / p->n_kv_heads; // integer multiplier of the kv sharing in multiquery
-    int hidden_dim =  p->hidden_dim;
-    int head_size = dim / p->n_heads;
+    uint8_t dim = p->dim;
+    uint16_t kv_dim = (p->dim * p->n_kv_heads) / p->n_heads;
+    uint16_t kv_mul = p->n_heads / p->n_kv_heads; // integer multiplier of the kv sharing in multiquery
+    uint16_t hidden_dim =  p->hidden_dim;
+    uint16_t head_size = dim / p->n_heads;
 
     // copy the token embedding into x
     // XXX64: token_embedding_table is remote, x is local
@@ -145,12 +185,15 @@ float* forward(Transformer* transformer, int token, int pos) {
 //        content_row += sizeof(float);
 //    }
 
+    dump_matrix_local(x, dim, "TOKEN");
+
     // forward all the layers
-    for(uint16_t l = 0; l < p->n_layers; l++) {
+    for(uint8_t l = 0; l < p->n_layers; l++) {
 
         // attention rmsnorm
         // XXX64: xb is local, x is local, weight is remote
-        rmsnorm(s->xb, x, w->rms_att_weight + (l*dim)*sizeof(float), dim);
+        rmsnorm(s->xb, x, w->rms_att_weight + ((uint32_t)l*dim)*sizeof(float), dim);
+        dump_matrix_local(s->xb, dim, "RMSNORM");
 
         // key and value point to the kv cache
         uint32_t loff = l * p->seq_len * kv_dim; // kv cache layer offset for convenience
@@ -158,36 +201,19 @@ float* forward(Transformer* transformer, int token, int pos) {
         s->v = s->value_cache + (loff + pos * kv_dim)*sizeof(float);
 
         // qkv matmuls for this position
-        matmul(s->q, s->xb, w->wq + (l*dim*dim)*sizeof(float), dim, dim);
-        matmul(s->k, s->xb, w->wk + (l*dim*kv_dim)*sizeof(float), dim, kv_dim);
-        matmul(s->v, s->xb, w->wv + (l*dim*kv_dim)*sizeof(float), dim, kv_dim);
+        dump_matrix(w->wq + ((uint32_t)l*dim*dim)*sizeof(float), dim, "WQ");
+        matmul(s->q, s->xb, w->wq + ((uint32_t)l*dim*dim)*sizeof(float), dim, dim);
+        dump_matrix(s->q, dim, "SQ");
+        matmul(s->k, s->xb, w->wk + ((uint32_t)l*dim*kv_dim)*sizeof(float), dim, kv_dim);
+        dump_matrix(s->k, kv_dim, "SK");
+        matmul(s->v, s->xb, w->wv + ((uint32_t)l*dim*kv_dim)*sizeof(float), dim, kv_dim);
+        dump_matrix(s->v, kv_dim, "SV");
 
-        // RoPE relative positional encoding: complex-valued rotate q and k in each head
-        for (uint16_t i = 0; i < dim; i+=2) {
-            int head_dim = i % head_size;
-            float freq = 1.0 / pow(10000.0, head_dim / (float)head_size);
-            float val = pos * freq;
-            float fcr = cos(val);
-            float fci = sin(val);
-            uint8_t rotn = i < kv_dim ? 2 : 1; // how many vectors? 2 = q & k, 1 = q only
-            REUPtr vec = (i == 0) ? s->q : s->k; // the vector to rotate (query or key)
-            vec += i * sizeof(float);
-            float v0, v1, v00, v01;
-            for (uint8_t v = 0; v < rotn; v++) {
-                REU_getf(vec, &v0, sizeof(float)); // XXX64: can be faster if both are read/written at once: v[0],v[1]
-                REU_getf(vec + sizeof(float), &v1, sizeof(float));
-                v00 = v0 * fcr - v1 * fci;
-                v01 = v0 * fci + v1 * fcr;
-                REU_putf(vec, &v00, sizeof(float));
-                REU_putf(vec + sizeof(float), &v01, sizeof(float));
-//                float* vec = v == 0 ? s->q : s->k; // the vector to rotate (query or key) // XXX64: all of these are remote
-//                float v0 = vec[i];
-//                float v1 = vec[i+1];
-//                vec[i]   = v0 * fcr - v1 * fci;
-//                vec[i+1] = v0 * fci + v1 * fcr;
-            }
-        }
+        rope(dim, s, head_size, pos, kv_dim); // modifies s->q and s->k in place
+        dump_matrix(s->q, dim, "SQROPE");
+        dump_matrix(s->k, kv_dim, "SKROPE");
 
+        printf("ATTN: %d\n",p->n_heads);
         // multihead attention. iterate over all heads
         for (uint16_t h = 0; h < p->n_heads; h++) {
             // get the query vector for this head
@@ -200,7 +226,7 @@ float* forward(Transformer* transformer, int token, int pos) {
             REUPtr atti = att;
             for (uint16_t t = 0; t <= pos; t++) {
                 // get the key vector for this head and at this timestep
-                REUPtr k = s->key_cache + (loff + t * kv_dim + (h / kv_mul) * head_size)*sizeof(float); // XXX64: key_cache is remote
+                REUPtr k = s->key_cache + ((uint32_t)loff + t * kv_dim + (h / kv_mul) * head_size)*sizeof(float); // XXX64: key_cache is remote
 //                float* k = s->key_cache + loff + t * kv_dim + (h / kv_mul) * head_size; // XXX64: key_cache is remote
                 // calculate the attention score as the dot product of q and k
                 float score = 0.0;
@@ -229,7 +255,7 @@ float* forward(Transformer* transformer, int token, int pos) {
             atti = att;
             for (uint16_t t = 0; t <= pos; t++) {
                 // get the value vector for this head and at this timestep
-                REUPtr v = s->value_cache + (loff + t * kv_dim + (h / kv_mul) * head_size)*sizeof(float);
+                REUPtr v = s->value_cache + ((uint32_t)loff + t * kv_dim + (h / kv_mul) * head_size)*sizeof(float);
 //                float* v = s->value_cache + loff + t * kv_dim + (h / kv_mul) * head_size;
                 // get the attention weight for this timestep
                 float a;
@@ -248,7 +274,7 @@ float* forward(Transformer* transformer, int token, int pos) {
         }
 
         // final matmul to get the output of the attention
-        matmul_l(s->xb2, s->xb, w->wo + (l*dim*dim)*sizeof(float), dim, dim);
+        matmul_l(s->xb2, s->xb, w->wo + ((uint32_t)l*dim*dim)*sizeof(float), dim, dim);
 
         // residual connection back into x
         for (uint16_t i = 0; i < dim; i++) {
@@ -257,12 +283,12 @@ float* forward(Transformer* transformer, int token, int pos) {
 
         // ffn rmsnorm
         // XXX64: xb is local, x is local, weight is remote
-        rmsnorm(s->xb, x, w->rms_ffn_weight + (l*dim)*sizeof(float), dim);
+        rmsnorm(s->xb, x, w->rms_ffn_weight + ((uint32_t)l*dim)*sizeof(float), dim);
 
         // Now for FFN in PyTorch we have: self.w2(F.silu(self.w1(x)) * self.w3(x))
         // first calculate self.w1(x) and self.w3(x)
-        matmul_l(s->hb, s->xb, w->w1 + (l*dim*hidden_dim)*sizeof(float), dim, hidden_dim);
-        matmul_l(s->hb2, s->xb, w->w3 + (l*dim*hidden_dim)*sizeof(float), dim, hidden_dim);
+        matmul_l(s->hb, s->xb, w->w1 + ((uint32_t)l*dim*hidden_dim)*sizeof(float), dim, hidden_dim);
+        matmul_l(s->hb2, s->xb, w->w3 + ((uint32_t)l*dim*hidden_dim)*sizeof(float), dim, hidden_dim);
 
         // SwiGLU non-linearity
         for (uint16_t i = 0; i < hidden_dim; i++) {
@@ -275,7 +301,7 @@ float* forward(Transformer* transformer, int token, int pos) {
         }
 
         // final matmul to get the output of the ffn
-        matmul_l(s->xb, s->hb, w->w2 + (l*dim*hidden_dim)*sizeof(float), hidden_dim, dim);
+        matmul_l(s->xb, s->hb, w->w2 + ((uint32_t)l*dim*hidden_dim)*sizeof(float), hidden_dim, dim);
 
         // residual connection
         for (uint16_t i = 0; i < dim; i++) {

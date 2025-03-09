@@ -69,7 +69,8 @@ int main(int argc, char *argv[]) {
     printf("build transformer\n");
 
 	// from nnet64.c forward()
-
+        Config* p = &transformer.config;
+if (0) {
 	// a few convenience variables
     Config* p = &transformer.config;
     TransformerWeights* w = &transformer.weights;
@@ -142,9 +143,9 @@ int main(int argc, char *argv[]) {
 	s->xb[1]=0.5;
         matmul(s->q, s->xb, w->wq + l*dim*dim, dim, dim);
 	dump_matrix(s->q, dim, "SQ-1.0-0.5");
-
+}
         float *logits;
-        logits = forward(&transformer, 0, 0);
+        logits = forward(&transformer, 1, 1);
         dump_matrix(logits, p->vocab_size, "LOGITS");
     
     	return 0;

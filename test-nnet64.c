@@ -67,7 +67,7 @@ int main(void) {
     printf("REUBASE FINAL=%lu\n", reu_base);
 
 	// from nnet64.c forward()
-
+if (0) {
 	// a few convenience variables
     Config64* p = transformer.config;
     TransformerWeights64* w = &transformer.weights;
@@ -142,10 +142,11 @@ int main(void) {
 
     softmax(w->wq, dim);
     dump_matrix(w->wq, dim, "SOFTMAX-XB");
-
+}
     float *logits;
-    logits = forward(&transformer, 0, 0);
-    dump_matrix_local(logits, p->vocab_size, "LOGITS");
+    logits = forward(&transformer, 1, 1);
+//    dump_matrix_local(logits, p->vocab_size, "LOGITS");
+    dump_matrix_local(logits, 64, "LOGITS");
 
     return 0;
 }

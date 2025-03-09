@@ -6,6 +6,8 @@
 
 #include "nnet.h"
 
+void dump_matrix(float* xout, int d, const char* name);
+
 // ----------------------------------------------------------------------------
 // neural net blocks; the dynamics of the Transformer
 
@@ -47,8 +49,9 @@ void softmax(float* x, int size) {
 }
 
 void matmul(float* xout, float* x, float* w, int n, int d) {
- //   printf("matmul xout=%i,xin=%i:wsize=%i\n",4*d,4*n,4*d*n);
-    // W (d,n) @ x (n,) -> xout (d,)
+    printf("MATMUL XOUT=%i,XIN=%i:WSIZE=%i\n",4*d,4*n,4*d*n);
+    printf("DIMS N=%i,D=%i\n",n,d);
+ // W (d,n) @ x (n,) -> xout (d,)
     // by far the most amount of time is spent inside this little function
     int i;
     for (i = 0; i < d; i++) {
@@ -78,11 +81,14 @@ float* forward(Transformer* transformer, int token, int pos) {
     float* content_row = w->token_embedding_table + token * dim;
     memcpy(x, content_row, dim*sizeof(*x));
 
+    dump_matrix(x, dim, "TOKEN");
+
     // forward all the layers
     for(unsigned long long l = 0; l < p->n_layers; l++) {
 
         // attention rmsnorm
         rmsnorm(s->xb, x, w->rms_att_weight + l*dim, dim);
+        dump_matrix(s->xb, dim, "RMSNORM");
 
         // key and value point to the kv cache
         int loff = l * p->seq_len * kv_dim; // kv cache layer offset for convenience
@@ -90,11 +96,16 @@ float* forward(Transformer* transformer, int token, int pos) {
         s->v = s->value_cache + loff + pos * kv_dim;
 
         // qkv matmuls for this position
+        dump_matrix(w->wq + l*dim*dim, dim, "WQ");
         matmul(s->q, s->xb, w->wq + l*dim*dim, dim, dim);
+        dump_matrix(s->q, dim, "SQ");
         matmul(s->k, s->xb, w->wk + l*dim*kv_dim, dim, kv_dim);
+        dump_matrix(s->k, kv_dim, "SK");
         matmul(s->v, s->xb, w->wv + l*dim*kv_dim, dim, kv_dim);
+        dump_matrix(s->v, kv_dim, "SV");
 
         // RoPE relative positional encoding: complex-valued rotate q and k in each head
+        printf("ROPE: %d\n",dim);
         for (int i = 0; i < dim; i+=2) {
             int head_dim = i % head_size;
             float freq = 1.0f / powf(10000.0f, head_dim / (float)head_size);
@@ -110,8 +121,11 @@ float* forward(Transformer* transformer, int token, int pos) {
                 vec[i+1] = v0 * fci + v1 * fcr;
             }
         }
+        dump_matrix(s->q, dim, "SQROPE");
+        dump_matrix(s->k, kv_dim, "SKROPE");
 
         // multihead attention. iterate over all heads
+        printf("ATTN: %d\n",p->n_heads);
         int h;
         for (h = 0; h < p->n_heads; h++) {
             // get the query vector for this head

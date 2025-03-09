@@ -12,6 +12,6 @@
 void softmax(REUPtr x, uint16_t size);
 
 // generate
-float* forward(Transformer* transformer, int token, int pos);
+float* forward(Transformer* transformer, uint16_t token, uint16_t pos);
 
 #endif // NNET_H
