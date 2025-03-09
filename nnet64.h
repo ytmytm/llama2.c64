@@ -9,7 +9,7 @@
 // neural net blocks; the dynamics of the Transformer
 
 // sampler
-void softmax(float* x, int size);
+void softmax(REUPtr x, uint16_t size);
 
 // generate
 float* forward(Transformer* transformer, int token, int pos);

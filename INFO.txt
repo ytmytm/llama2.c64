@@ -10,7 +10,7 @@
 nnet64.c
 + potrzebuje przypadku testowego native (tak samo pierwsze 1-2 mnożenia)
 + nnet64 rmsnorm()
-- nnet64 softmax()
++ nnet64 softmax()
 - nnet64 forward() (i jego test) potrzebuje przerobienia na arytmetykę pointerów w REU
     - jeśli dodam matmul_local (wynik w local) to s->q też przywrócić do local (+uaktualnić test)
 + nnet64 matmul() potrzebuje przerobienia na pointery REU
@@ -21,6 +21,9 @@ nnet64.c
 - ?może ten offset na wagi przekazywać jako następny parametr (inaczej u źródła trzeba zawsze mnożyć przez sizeof(float)) 
     - zobaczyć ile razy to jest użyte, może nie trzeba
     - uwaga na atrytmetykę wskaźników gdy reu
+
+sampler.c
+- używa softmax() - uwaga na źródło danych (remote + ptr offset *sizeof(float))
 
 test-nnet.c
 - ma szybszy matmul2 (operacje tylko na wskaźnikach)

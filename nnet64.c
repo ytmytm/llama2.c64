@@ -9,7 +9,6 @@
 // ----------------------------------------------------------------------------
 // neural net blocks; the dynamics of the Transformer
 
-//XXX64: test
 void rmsnorm(float* o, float* x, REUPtr weight, uint8_t size) {
     printf("rmsnorm :size=%d\n",4*size);
     float wif;
@@ -32,25 +31,41 @@ void rmsnorm(float* o, float* x, REUPtr weight, uint8_t size) {
     }
 }
 
-//C64 todo/test
-void softmax(float* x, int size) {
+// x is remote, size is sampler->vocab_size (uint_16t)
+void softmax(REUPtr x, uint16_t size) {
     printf("softmax :size=%i\n",4*size);
+    float xif;
+    REUPtr xi;
+    // XXX64 would be faster with local buffer for x[size] to operate here and write back at the end
     // find max value (for numerical stability)
-    float max_val = x[0];
-    for (int i = 1; i < size; i++) {
-        if (x[i] > max_val) {
-            max_val = x[i];
+    float max_val;
+    xi = x;
+    REU_getf(xi, &max_val, sizeof(float)); // x[0]
+    xi += sizeof(float); // loop below starts with x[1]
+    for (uint16_t i = 1; i < size; i++) {
+        REU_getf(xi, &xif, sizeof(float));
+        if (xif > max_val) {
+            max_val = xif;
         }
+        xi += sizeof(float);
     }
     // exp and sum
     float sum = 0.0;
-    for (int i = 0; i < size; i++) {
-        x[i] = exp(x[i] - max_val);
-        sum += x[i];
+    xi = x;
+    for (uint16_t i = 0; i < size; i++) {
+        REU_getf(xi, &xif, sizeof(float));
+        xif = exp(xif - max_val);
+        REU_putf(xi, &xif, sizeof(float)); // write back locally changed
+        sum += xif;
+        xi += sizeof(float);
     }
     // normalize
-    for (int i = 0; i < size; i++) {
-        x[i] /= sum;
+    xi = x;
+    for (uint16_t i = 0; i < size; i++) {
+        REU_getf(xi, &xif, sizeof(float));
+        xif /= sum;
+        REU_putf(xi, &xif, sizeof(float)); // write back locally changed
+        xi += sizeof(float);
     }
 }
 
@@ -138,13 +153,13 @@ float* forward(Transformer* transformer, int token, int pos) {
         int h;
         for (h = 0; h < p->n_heads; h++) {
             // get the query vector for this head
-            float* q = s->q + h * head_size;
+            float* q = s->q + h * head_size; // XXX64: q is remote
             // attention scores for this head
-            float* att = s->att + h * p->seq_len;
+            float* att = s->att + h * p->seq_len; // XXX64: att is remote
             // iterate over all timesteps, including the current one
             for (int t = 0; t <= pos; t++) {
                 // get the key vector for this head and at this timestep
-                float* k = s->key_cache + loff + t * kv_dim + (h / kv_mul) * head_size;
+                float* k = s->key_cache + loff + t * kv_dim + (h / kv_mul) * head_size; // XXX64: key_cache is remote
                 // calculate the attention score as the dot product of q and k
                 float score = 0.0;
                 for (int i = 0; i < head_size; i++) {

@@ -89,6 +89,10 @@ int main(int argc, char *argv[]) {
     rmsnorm(xb, x, w->wq, dim);
     dump_matrix(xb, dim, "RMS-XB");
 
+    memcpy(xb, w->wq, dim*sizeof(float));
+    softmax(xb, dim);
+    dump_matrix(xb, dim, "SOFTMAX-XB");
+
 	uint32_t pos = 0; // forward() parameter
 	uint32_t l = 0; // loop
 

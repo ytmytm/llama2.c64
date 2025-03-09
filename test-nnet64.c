@@ -140,6 +140,9 @@ int main(void) {
     rmsnorm(xb, x, w->wq, dim);
     dump_matrix_local(xb, dim, "RMS-XB");
 
+    softmax(w->wq, dim);
+    dump_matrix(w->wq, dim, "SOFTMAX-XB");
+
     return 0;
 }
 
