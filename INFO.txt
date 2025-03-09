@@ -24,3 +24,5 @@ nnet64.c
 
 test-nnet.c
 - ma szybszy matmul2 (operacje tylko na wskaźnikach)
+
+[REUPtr as float*] - doesn't work as pointers are 16-bit in Oscar64 (branch backtofloat)
