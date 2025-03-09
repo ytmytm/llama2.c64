@@ -64,7 +64,7 @@ int main(void) {
     printf("p->seq_len=%d\n", c->seq_len);
     printf("p->shared_weigths=%d\n", c->shared_weights);
 
-    printf("reu_base FINAL=%lu\n", reu_base);
+    printf("REUBASE FINAL=%lu\n", reu_base);
 
 	// from nnet64.c forward()
 
@@ -97,7 +97,7 @@ int main(void) {
 //        matmul(s->k, s->xb, w->wk + l*dim*kv_dim, dim, kv_dim);
 //        matmul(s->v, s->xb, w->wv + l*dim*kv_dim, dim, kv_dim);
 
-    printf("pos=%d\tl=%d\n",pos,l);
+    printf("POS=%d\tL=%d\n",pos,l);
     s->xb[0]=1.0;
     matmul(s->q, s->xb, w->wq + (l*dim*dim)*sizeof(float), dim, dim);
 	// dump xout (first+last parameter of matmul)
@@ -117,7 +117,7 @@ int main(void) {
 	pos = 5;
 	l = 6;
 
-	printf("pos=%d\tl=%d\n",pos,l);
+	printf("POS=%d\tL=%d\n",pos,l);
 
 	loff = l * p->seq_len * kv_dim; // kv cache layer offset for convenience
     s->k = s->key_cache + (loff + pos * kv_dim)*sizeof(float); // XXX *sizeof(float)
@@ -142,6 +142,10 @@ int main(void) {
 
     softmax(w->wq, dim);
     dump_matrix(w->wq, dim, "SOFTMAX-XB");
+
+    float *logits;
+    logits = forward(&transformer, 0, 0);
+    dump_matrix_local(logits, p->vocab_size, "LOGITS");
 
     return 0;
 }

@@ -143,6 +143,10 @@ int main(int argc, char *argv[]) {
         matmul(s->q, s->xb, w->wq + l*dim*dim, dim, dim);
 	dump_matrix(s->q, dim, "SQ-1.0-0.5");
 
+        float *logits;
+        logits = forward(&transformer, 0, 0);
+        dump_matrix(logits, p->vocab_size, "LOGITS");
+    
     	return 0;
 }
 

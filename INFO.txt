@@ -13,6 +13,11 @@ nnet64.c
 + nnet64 softmax()
 - nnet64 forward() (i jego test) potrzebuje przerobienia na arytmetykę pointerów w REU
     - jeśli dodam matmul_local (wynik w local) to s->q też przywrócić do local (+uaktualnić test)
+    - s->q przywrócić do local (użyć matmul_local)
+    - nie działa dobrze (czemu pokazuje ujemny wsize?)
+        - nietestowany dobrze matmul_local
+    - wszędzie w licznikach gdzie było int daję uint16_t (dobrze?)
+    - czy w ogóle dobry config bierze?
 + nnet64 matmul() potrzebuje przerobienia na pointery REU
     - i trzymać jeden pointer na xout, nie trzeba obliczać pozycji za każdym razem bo i tak zmienia się o 1
     - do/z REU można przepisywać całe policzone wiersze/kolumny (po 64 bajty)
