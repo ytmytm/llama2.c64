@@ -10,6 +10,10 @@
 #include "tokenizer.h"
 #include "util.h"
 
+
+/////////////////////////////
+// test/debug nnet.h
+void rmsnorm(float* o, float* x, float* weight, int size);
 void matmul(float* xout, float* x, float* w, int n, int d);
 
 void dump_matrix(float* xout, int d, const char* name) {
@@ -76,6 +80,14 @@ int main(int argc, char *argv[]) {
     int kv_mul = p->n_heads / p->n_kv_heads; // integer multiplier of the kv sharing in multiquery
     int hidden_dim =  p->hidden_dim;
     int head_size = dim / p->n_heads;
+
+//    float *x = s->x;
+    float *xb = s->xb;
+    x[0]=1.0;
+    x[1]=0.5;
+    x[dim-1]=0.1;
+    rmsnorm(xb, x, w->wq, dim);
+    dump_matrix(xb, dim, "RMS-XB");
 
 	uint32_t pos = 0; // forward() parameter
 	uint32_t l = 0; // loop

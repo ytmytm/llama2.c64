@@ -9,7 +9,7 @@
 
 nnet64.c
 + potrzebuje przypadku testowego native (tak samo pierwsze 1-2 mnożenia)
-- nnet64 rmsnorm()
++ nnet64 rmsnorm()
 - nnet64 softmax()
 - nnet64 forward() (i jego test) potrzebuje przerobienia na arytmetykę pointerów w REU
     - jeśli dodam matmul_local (wynik w local) to s->q też przywrócić do local (+uaktualnić test)

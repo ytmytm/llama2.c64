@@ -9,20 +9,26 @@
 // ----------------------------------------------------------------------------
 // neural net blocks; the dynamics of the Transformer
 
-//C64 todo/test
-void rmsnorm(float* o, float* x, float* weight, int size) {
-    printf("rmsnorm :size=%i\n",4*size);
+//XXX64: test
+void rmsnorm(float* o, float* x, REUPtr weight, uint8_t size) {
+    printf("rmsnorm :size=%d\n",4*size);
+    float wif;
+    REUPtr wi = weight;
     // calculate sum of squares
     float ss = 0.0;
-    for (int j = 0; j < size; j++) {
+    for (uint8_t j = 0; j < size; j++) {
         ss += x[j] * x[j];
     }
+    printf("ss=%f\t",ss);
     ss /= size;
     ss += 0.00001;
     ss = 1.0 / sqrt(ss);
+    printf("normalized ss=%f\n",ss);
     // normalize and scale
-    for (int j = 0; j < size; j++) {
-        o[j] = weight[j] * (ss * x[j]);
+    for (uint8_t j = 0; j < size; j++) {
+        REU_getf(wi, &wif, sizeof(float)); // XXX: can be faster if whole row is read once into weights[size] then use weights[j] instead of wif
+        wi += sizeof(float);
+        o[j] = wif * (ss * x[j]);
     }
 }
 
@@ -79,9 +85,10 @@ float* forward(Transformer* transformer, int token, int pos) {
 
     // a few convenience variables
     Config64* p = &transformer->config;
-    TransformerWeights64* w = &transformer->weights;
+    TransformerWeights64* w = &transformer->weights; // XXX64:all are remote
     RunState64* s = &transformer->state;
-    float *x = s->x;
+    float *x = s->x; // XXX64: x, s->x local
+    // XXX64: some (all) of these could be uint16_t (like all config values)
     int dim = p->dim;
     int kv_dim = (p->dim * p->n_kv_heads) / p->n_heads;
     int kv_mul = p->n_heads / p->n_kv_heads; // integer multiplier of the kv sharing in multiquery
@@ -89,6 +96,7 @@ float* forward(Transformer* transformer, int token, int pos) {
     int head_size = dim / p->n_heads;
 
     // copy the token embedding into x
+    // XXX64: token_embedding_table is remote, x is local
     float* content_row = w->token_embedding_table + token * dim;
     memcpy(x, content_row, dim*sizeof(*x));
 
@@ -96,7 +104,8 @@ float* forward(Transformer* transformer, int token, int pos) {
     for(uint32_t l = 0; l < p->n_layers; l++) {
 
         // attention rmsnorm
-        rmsnorm(s->xb, x, w->rms_att_weight + l*dim, dim);
+        // XXX64: xb is local, x is local, weight is remote
+        rmsnorm(s->xb, x, w->rms_att_weight + (l*dim)*sizeof(float), dim);
 
         // key and value point to the kv cache
         uint32_t loff = l * p->seq_len * kv_dim; // kv cache layer offset for convenience
@@ -173,7 +182,8 @@ float* forward(Transformer* transformer, int token, int pos) {
         }
 
         // ffn rmsnorm
-        rmsnorm(s->xb, x, w->rms_ffn_weight + l*dim, dim);
+        // XXX64: xb is local, x is local, weight is remote
+        rmsnorm(s->xb, x, w->rms_ffn_weight + (l*dim)*sizeof(float), dim);
 
         // Now for FFN in PyTorch we have: self.w2(F.silu(self.w1(x)) * self.w3(x))
         // first calculate self.w1(x) and self.w3(x)
@@ -200,6 +210,7 @@ float* forward(Transformer* transformer, int token, int pos) {
     }
 
     // final rmsnorm
+    // XXX64: x is local, x is local, weight is remote
     rmsnorm(x, x, w->rms_final_weight, dim);
 
     // classifier into logits

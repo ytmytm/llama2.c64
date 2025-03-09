@@ -28,6 +28,15 @@ void dump_matrix(REUPtr xout, int d, const char* name) {
 	printf("\n");
 }
 
+void dump_matrix_local(float* xout, int d, const char* name) {
+	printf("MATRIX:%s,%d\n",name,d);
+	int i;
+	for (i=0;i<d;i++) {
+		printf("%f\t",xout[i]);
+	}
+	printf("\n");
+}
+
 int main(void) {
 
     // default parameters
@@ -123,6 +132,13 @@ int main(void) {
     s->xb[1]=0.5;
     matmul(s->q, s->xb, w->wq + (l*dim*dim)*sizeof(float), dim, dim);
 	dump_matrix(s->q, dim, "SQ-1.0-0.5");
+
+    float *xb = s->xb;
+    x[0]=1.0;
+    x[1]=0.5;
+    x[dim-1]=0.1;
+    rmsnorm(xb, x, w->wq, dim);
+    dump_matrix_local(xb, dim, "RMS-XB");
 
     return 0;
 }
