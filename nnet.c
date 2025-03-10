@@ -112,13 +112,17 @@ float* forward(Transformer* transformer, int token, int pos) {
             float val = pos * freq;
             float fcr = cosf(val);
             float fci = sinf(val);
+//            printf("%i:HEAD_SIZE=%i,HEAD_DIM=%i\n",i,head_size,head_dim);
+//            printf("%d:VAL=%f,FCR=%f,FCI=%f\n",i,val,fcr,fci);
             int rotn = i < kv_dim ? 2 : 1; // how many vectors? 2 = q & k, 1 = q only
             for (int v = 0; v < rotn; v++) {
                 float* vec = v == 0 ? s->q : s->k; // the vector to rotate (query or key)
                 float v0 = vec[i];
                 float v1 = vec[i+1];
+//                printf("%d:%d:%f-%f\t",i,v,v0,v1);
                 vec[i]   = v0 * fcr - v1 * fci;
                 vec[i+1] = v0 * fci + v1 * fcr;
+//                printf("%f-%f\n",vec[i],vec[i+1]);
             }
         }
         dump_matrix(s->q, dim, "SQROPE");

@@ -125,37 +125,36 @@ void rope(uint8_t dim, RunState64 *s, uint16_t head_size, uint16_t pos, uint16_t
 {
     // RoPE relative positional encoding: complex-valued rotate q and k in each head
     printf("ROPE: %d\n", dim);
-    REUPtr vec = s->q; // the vector to rotate (query or key)
+    REUPtr vecq = s->q; // the vector to rotate (query or key)
+    REUPtr veck = s->k; // the vector to rotate (query or key)
     float vi[2];
     float vo[2];
     for (uint8_t i = 0; i < dim; i += 2)
     {
         int head_dim = i % head_size;
+//        printf("%d:HEAD_SIZE=%d,HEAD_DIM=%d\n",i,head_size,head_dim);
         float val = pos * 1.0 / pow(10000.0, head_dim / (float)head_size);
         float fcr = cos(val);
         float fci = sin(val);
+//        printf("%d:VAL=%f,FCR=%f,FCI=%f\n",i,val,fcr,fci);
         uint8_t rotn = i < kv_dim ? 2 : 1; // how many vectors? 2 = q & k, 1 = q only
-        if (i == 0)
-            vec = s->q; // query
-        if (i == 2)
-            vec = s->k; // key
-        if (i > 2)
-            vec += 2 * sizeof(float); // next key vector
-//        if (0)
-        { // XXX64: oscar64 hangs here if this is not commented out
-            for (uint8_t v = 0; v < rotn; v++)
-            {
-                REU_getf(vec, &vi[0], 2 * sizeof(float));
-                vo[0] = vi[0] * fcr - vi[1] * fci;
-                vo[1] = vi[0] * fci + vi[1] * fcr;
-                REU_putf(vec, &vo[0], 2 * sizeof(float));
-                //                float* vec = v == 0 ? s->q : s->k; // the vector to rotate (query or key) // XXX64: all of these are remote
-                //                float v0 = vec[i];
-                //                float v1 = vec[i+1];
-                //                vec[i]   = v0 * fcr - v1 * fci;
-                //                vec[i+1] = v0 * fci + v1 * fcr;
-            }
+        for (uint8_t v = 0; v < rotn; v++)
+        {
+            REUPtr vec = v == 0 ? vecq : veck; // the vector to rotate (query or key)
+            REU_getf(vec, &vi[0], 2 * sizeof(float));
+//            printf("%d:%d:%f-%f\t",i,v,vi[0],vi[1]);
+            vo[0] = vi[0] * fcr - vi[1] * fci;
+            vo[1] = vi[0] * fci + vi[1] * fcr;
+            REU_putf(vec, &vo[0], 2 * sizeof(float));
+//            printf("%f-%f\n",vo[0],vo[1]);
+            //                float* vec = v == 0 ? s->q : s->k; // the vector to rotate (query or key) // XXX64: all of these are remote
+            //                float v0 = vec[i];
+            //                float v1 = vec[i+1];
+            //                vec[i]   = v0 * fcr - v1 * fci;
+            //                vec[i+1] = v0 * fci + v1 * fcr;
         }
+        vecq += 2 * sizeof(float);
+        veck += 2 * sizeof(float);
     }
 }
 
