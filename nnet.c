@@ -105,7 +105,7 @@ float* forward(Transformer* transformer, int token, int pos) {
         dump_matrix(s->v, kv_dim, "SV");
 
         // RoPE relative positional encoding: complex-valued rotate q and k in each head
-        printf("ROPE: %d\n",dim);
+        printf("ROPE: %d,%d\n",dim,kv_dim);
         for (int i = 0; i < dim; i+=2) {
             int head_dim = i % head_size;
             float freq = 1.0f / powf(10000.0f, head_dim / (float)head_size);

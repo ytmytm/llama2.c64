@@ -14,7 +14,7 @@ void dump_matrix_local(float* xout, int d, const char* name);
 // neural net blocks; the dynamics of the Transformer
 
 void rmsnorm(float* o, float* x, REUPtr weight, uint8_t size) {
-    printf("RMSNORM :SIZE=%d\n",4*size);
+    printf("RMSNORM :SIZE=%d\n",size);
     float wif;
     REUPtr wi = weight;
     // calculate sum of squares
@@ -35,7 +35,7 @@ void rmsnorm(float* o, float* x, REUPtr weight, uint8_t size) {
 
 // x is remote, size is sampler->vocab_size (uint_16t)
 void softmax(REUPtr x, uint16_t size) {
-    printf("SOFTMAX SIZE=%d\n",4*size);
+    printf("SOFTMAX SIZE=%d\n",size);
     float xif;
     REUPtr xi;
     // XXX64 would be faster with local buffer for x[size] to operate here and write back at the end
@@ -121,10 +121,34 @@ void matmul_l(float* xout, float* x, REUPtr w, uint8_t n, uint8_t d) {
     }
 }
 
+// xout is local, x is local, w is remote, n/d are always dim
+void matmul_ll(float* xout, float* x, REUPtr w, uint8_t n, uint16_t d) {
+    //    printf("MATMUL-L XOUT=%d,XIN=%d:WSIZE=%d\n",4*d,4*n,(uint16_t)4*d*n);
+        printf("MATMUL-LL DIMS N=%d,D=%d\n",n,d);
+        // W (d,n) @ x (n,) -> xout (d,)
+        // by far the most amount of time is spent inside this little function
+        float *xo = xout;
+        REUPtr wi = w;
+        float wif;
+        float *xi;
+        for (uint16_t i = 0; i < d; i++) {
+            *xo = 0.0;
+            xi = x;
+            for (uint8_t j = 0; j < n; j++) {
+                REU_getf(wi, &wif, sizeof(float)); // XXX: can be faster if whole row is read once
+                *xo += wif * (*xi);
+    //            printf("[%d,%d],[%f]*[%f]=%f\n",i,j,wif,*xi,xof);
+                wi += sizeof(float);
+                xi++;
+            }
+            xo++;
+        }
+    }
+    
 void rope(uint8_t dim, RunState64 *s, uint16_t head_size, uint16_t pos, uint16_t kv_dim)
 {
     // RoPE relative positional encoding: complex-valued rotate q and k in each head
-    printf("ROPE: %d\n", dim);
+    printf("ROPE: %d:%d\n", dim, kv_dim);
     REUPtr vecq = s->q; // the vector to rotate (query or key)
     REUPtr veck = s->k; // the vector to rotate (query or key)
     float vi[2];
@@ -177,7 +201,7 @@ float* forward(Transformer* transformer, uint16_t token, uint16_t pos) {
     // XXX64: token_embedding_table is remote, x is local
 //    float* content_row = w->token_embedding_table + token * dim;
 //    memcpy(x, content_row, dim*sizeof(*x));
-    REUPtr content_row = w->token_embedding_table + (token * dim)*sizeof(float);
+    REUPtr content_row = w->token_embedding_table + ((uint32_t)token * dim)*sizeof(float);
     REU_getf(content_row, x, dim*sizeof(float));
 //    for (uint16_t i = 0; i < dim; i++) {
 //        REU_getf(content_row, &x[i], sizeof(float));
@@ -188,6 +212,7 @@ float* forward(Transformer* transformer, uint16_t token, uint16_t pos) {
 
     // forward all the layers
     for(uint8_t l = 0; l < p->n_layers; l++) {
+        printf("LAYER: %d OF %d\n",l,p->n_layers);
 
         // attention rmsnorm
         // XXX64: xb is local, x is local, weight is remote
@@ -216,10 +241,10 @@ float* forward(Transformer* transformer, uint16_t token, uint16_t pos) {
         // multihead attention. iterate over all heads
         for (uint16_t h = 0; h < p->n_heads; h++) {
             // get the query vector for this head
-            REUPtr q = s->q + (h * head_size)*sizeof(float); // XXX64: q is remote
+            REUPtr q = s->q + ((uint32_t)h * head_size)*sizeof(float); // XXX64: q is remote
 //            float* q = s->q + h * head_size; // XXX64: q is remote
             // attention scores for this head
-            REUPtr att = s->att + (h * p->seq_len)*sizeof(float); // XXX64: att is remote
+            REUPtr att = s->att + ((uint32_t)h * p->seq_len)*sizeof(float); // XXX64: att is remote
 //            float* att = s->att + h * p->seq_len; // XXX64: att is remote
             // iterate over all timesteps, including the current one
             REUPtr atti = att;
@@ -313,6 +338,7 @@ float* forward(Transformer* transformer, uint16_t token, uint16_t pos) {
     rmsnorm(x, x, w->rms_final_weight, dim);
 
     // classifier into logits
-    matmul_l(s->logits, x, w->wcls, p->dim, p->vocab_size);
+    matmul_ll(s->logits, x, w->wcls, p->dim, p->vocab_size);
+    dump_matrix_local(s->logits, p->vocab_size, "LOGITS(FORWARD)");
     return s->logits;
 }

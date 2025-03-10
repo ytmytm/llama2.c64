@@ -16,6 +16,13 @@
 //#include "util.h"
 //#include "util64.c"
 
+#include <c64/memmap.h>
+
+#pragma region( main, 0x0a00, 0xd000, , , {code, data, bss, heap, stack} )
+
+//#pragma stacksize(4096)
+//#pragma heapsize(8192)
+
 void dump_matrix(REUPtr xout, int d, const char* name) {
 	printf("MATRIX:%s,%d\n",name,d);
 	int i;
@@ -38,6 +45,8 @@ void dump_matrix_local(float* xout, int d, const char* name) {
 }
 
 int main(void) {
+
+    mmap_set(MMAP_NO_BASIC);
 
     // default parameters
     char *tokenizer_path = NULL;  // e.g. out/tokenizer.bin
