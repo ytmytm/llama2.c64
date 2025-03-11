@@ -145,7 +145,7 @@ void matmul_ll(float* xout, float* x, REUPtr w, uint8_t n, uint16_t d) {
         }
     }
     
-void rope(uint8_t dim, RunState64 *s, uint16_t head_size, uint16_t pos, uint16_t kv_dim)
+void rope(uint8_t dim, RunState64 *s, uint8_t head_size, uint16_t pos, uint8_t kv_dim)
 {
     // RoPE relative positional encoding: complex-valued rotate q and k in each head
     printf("ROPE: %d:%d\n", dim, kv_dim);
@@ -182,7 +182,7 @@ void rope(uint8_t dim, RunState64 *s, uint16_t head_size, uint16_t pos, uint16_t
     }
 }
 
-void attn(Config64 *p, RunState64 *s, uint8_t head_size, uint16_t pos, uint32_t loff, uint16_t kv_dim, uint16_t kv_mul)
+void attn(Config64 *p, RunState64 *s, uint8_t head_size, uint16_t pos, uint32_t loff, uint8_t kv_dim, uint8_t kv_mul)
 {
     printf("ATTN: %d,%d\n", p->n_heads,head_size);
     // multihead attention. iterate over all heads
@@ -222,11 +222,11 @@ void attn(Config64 *p, RunState64 *s, uint8_t head_size, uint16_t pos, uint32_t 
             atti += sizeof(float);
 //                att[t] = score;
         }
-        dump_matrix(att, pos, "ATT");
+//        dump_matrix(att, pos, "ATT");
 
         // softmax the scores to get attention weights, from 0..pos inclusively
         softmax(att, pos + 1);
-        dump_matrix(att, pos, "ATTSOFTMAX");
+//        dump_matrix(att, pos, "ATTSOFTMAX");
 
         // weighted sum of the values, store back into xb
         float *xb = s->xb + h * head_size;
@@ -255,7 +255,7 @@ void attn(Config64 *p, RunState64 *s, uint8_t head_size, uint16_t pos, uint32_t 
     }
 }
 
-//C64 todo/test
+// assumption: n_heads, dim, hidden_dim are <256
 float* forward(Transformer* transformer, uint16_t token, uint16_t pos) {
 
     // a few convenience variables
@@ -265,10 +265,10 @@ float* forward(Transformer* transformer, uint16_t token, uint16_t pos) {
     float *x = s->x; // XXX64: x, s->x local
     // XXX64: some (all) of these could be uint16_t (like all config values)
     uint8_t dim = p->dim;
-    uint16_t kv_dim = (p->dim * p->n_kv_heads) / p->n_heads;
-    uint16_t kv_mul = p->n_heads / p->n_kv_heads; // integer multiplier of the kv sharing in multiquery
-    uint16_t hidden_dim =  p->hidden_dim;
-    uint16_t head_size = dim / p->n_heads;
+    uint8_t kv_dim = (p->dim * p->n_kv_heads) / p->n_heads;
+    uint8_t kv_mul = p->n_heads / p->n_kv_heads; // integer multiplier of the kv sharing in multiquery
+    uint8_t hidden_dim =  p->hidden_dim;
+    uint8_t head_size = dim / p->n_heads;
 
     // copy the token embedding into x
     // XXX64: token_embedding_table is remote, x is local
@@ -316,8 +316,7 @@ float* forward(Transformer* transformer, uint16_t token, uint16_t pos) {
         matmul_l(s->xb2, s->xb, w->wo + ((uint32_t)l*dim*dim)*sizeof(float), dim, dim);
 
         // residual connection back into x
-        printf("DIM=%d\n",dim);
-        for (uint16_t i = 0; i < dim; i++) {
+        for (uint8_t i = 0; i < dim; i++) {
             x[i] += s->xb2[i];
         }
 
@@ -331,8 +330,7 @@ float* forward(Transformer* transformer, uint16_t token, uint16_t pos) {
         matmul_l(s->hb2, s->xb, w->w3 + ((uint32_t)l*dim*hidden_dim)*sizeof(float), dim, hidden_dim);
 
         // SwiGLU non-linearity
-        printf("HIDDEN_DIM=%d\n",hidden_dim);
-        for (uint16_t i = 0; i < hidden_dim; i++) {
+        for (uint8_t i = 0; i < hidden_dim; i++) {
             float val = s->hb[i];
             // silu(x)=x*σ(x), where σ(x) is the logistic sigmoid
             val *= (1.0 / (1.0 + exp(-val)));
@@ -345,7 +343,7 @@ float* forward(Transformer* transformer, uint16_t token, uint16_t pos) {
         matmul_l(s->xb, s->hb, w->w2 + ((uint32_t)l*dim*hidden_dim)*sizeof(float), hidden_dim, dim);
 
         // residual connection
-        for (uint16_t i = 0; i < dim; i++) {
+        for (uint8_t i = 0; i < dim; i++) {
             x[i] += s->xb[i];
         }
     }
