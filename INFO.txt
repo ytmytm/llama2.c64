@@ -9,6 +9,7 @@
 
 nnet64.c
 - wspólne offsety można wydzielić (są takie same dal key_cache i value_cache?)
+- buforowanie danych z REU (cały wiersz/kolumna)
 + potrzebuje przypadku testowego native (tak samo pierwsze 1-2 mnożenia)
 + nnet64 rmsnorm()
 + nnet64 softmax()
@@ -32,7 +33,9 @@ nnet64.c
     - uwaga na atrytmetykę wskaźników gdy reu
 
 sampler.c
-- używa softmax() - uwaga na źródło danych (remote + ptr offset *sizeof(float))
+- nie testowany, nie kompilowany
+- ma swoje softmax_local (softmax ma remote)
+- nie obsługuje top-p sampling
 
 test-nnet.c
 - ma szybszy matmul2 (operacje tylko na wskaźnikach)
