@@ -157,6 +157,8 @@ if (0) {
 //    dump_matrix_local(logits, p->vocab_size, "LOGITS");
     dump_matrix_local(logits, 64, "LOGITS");
 
+    while (true);
+
     return 0;
 }
 
