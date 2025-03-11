@@ -129,7 +129,7 @@ float* forward(Transformer* transformer, int token, int pos) {
         dump_matrix(s->k, kv_dim, "SKROPE");
 
         // multihead attention. iterate over all heads
-        printf("ATTN: %d\n",p->n_heads);
+        printf("ATTN: %i,%i\n", p->n_heads,head_size);
         int h;
         for (h = 0; h < p->n_heads; h++) {
             // get the query vector for this head
@@ -145,13 +145,16 @@ float* forward(Transformer* transformer, int token, int pos) {
                 for (int i = 0; i < head_size; i++) {
                     score += q[i] * k[i];
                 }
+//                printf("%d:%d,SCORE=%f\n",h,t,score);
                 score /= sqrtf(head_size);
                 // save the score to the attention buffer
                 att[t] = score;
             }
+            dump_matrix(att, pos, "ATT");
 
             // softmax the scores to get attention weights, from 0..pos inclusively
             softmax(att, pos + 1);
+            dump_matrix(att, pos, "ATTSOFTMAX");
 
             // weighted sum of the values, store back into xb
             float* xb = s->xb + h * head_size;
