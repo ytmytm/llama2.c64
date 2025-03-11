@@ -281,7 +281,7 @@ float* forward(Transformer* transformer, uint16_t token, uint16_t pos) {
 //        content_row += sizeof(float);
 //    }
 
-    dump_matrix_local(x, dim, "TOKEN");
+//    dump_matrix_local(x, dim, "TOKEN");
 
     // forward all the layers
     for(uint8_t l = 0; l < p->n_layers; l++) {
@@ -290,7 +290,7 @@ float* forward(Transformer* transformer, uint16_t token, uint16_t pos) {
         // attention rmsnorm
         // XXX64: xb is local, x is local, weight is remote
         rmsnorm(s->xb, x, w->rms_att_weight + ((uint32_t)l*dim)*sizeof(float), dim);
-        dump_matrix_local(s->xb, dim, "RMSNORM");
+//        dump_matrix_local(s->xb, dim, "RMSNORM");
 
         // key and value point to the kv cache
         uint32_t loff = l * p->seq_len * kv_dim; // kv cache layer offset for convenience
@@ -298,17 +298,17 @@ float* forward(Transformer* transformer, uint16_t token, uint16_t pos) {
         s->v = s->value_cache + (loff + pos * kv_dim)*sizeof(float);
 
         // qkv matmuls for this position
-        dump_matrix(w->wq + ((uint32_t)l*dim*dim)*sizeof(float), dim, "WQ");
+//        dump_matrix(w->wq + ((uint32_t)l*dim*dim)*sizeof(float), dim, "WQ");
         matmul(s->q, s->xb, w->wq + ((uint32_t)l*dim*dim)*sizeof(float), dim, dim);
-        dump_matrix(s->q, dim, "SQ");
+//        dump_matrix(s->q, dim, "SQ");
         matmul(s->k, s->xb, w->wk + ((uint32_t)l*dim*kv_dim)*sizeof(float), dim, kv_dim);
-        dump_matrix(s->k, kv_dim, "SK");
+//        dump_matrix(s->k, kv_dim, "SK");
         matmul(s->v, s->xb, w->wv + ((uint32_t)l*dim*kv_dim)*sizeof(float), dim, kv_dim);
-        dump_matrix(s->v, kv_dim, "SV");
+//        dump_matrix(s->v, kv_dim, "SV");
 
         rope(dim, s, head_size, pos, kv_dim); // modifies s->q and s->k in place
-        dump_matrix(s->q, dim, "SQROPE");
-        dump_matrix(s->k, kv_dim, "SKROPE");
+//        dump_matrix(s->q, dim, "SQROPE");
+//        dump_matrix(s->k, kv_dim, "SKROPE");
 
         attn(p, s, head_size, pos, loff, kv_dim, kv_mul);
 
@@ -354,6 +354,6 @@ float* forward(Transformer* transformer, uint16_t token, uint16_t pos) {
 
     // classifier into logits
     matmul_ll(s->logits, x, w->wcls, p->dim, p->vocab_size);
-    dump_matrix_local(s->logits, p->vocab_size, "LOGITS(FORWARD)");
+//    dump_matrix_local(s->logits, p->vocab_size, "LOGITS(FORWARD)");
     return s->logits;
 }
