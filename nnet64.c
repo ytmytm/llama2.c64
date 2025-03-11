@@ -182,6 +182,79 @@ void rope(uint8_t dim, RunState64 *s, uint16_t head_size, uint16_t pos, uint16_t
     }
 }
 
+void attn(Config64 *p, RunState64 *s, uint8_t head_size, uint16_t pos, uint32_t loff, uint16_t kv_dim, uint16_t kv_mul)
+{
+    printf("ATTN: %d,%d\n", p->n_heads,head_size);
+    // multihead attention. iterate over all heads
+    for (uint8_t h = 0; h < p->n_heads; h++)
+    {
+        // get the query vector for this head
+        REUPtr q = s->q + ((uint32_t)h * head_size) * sizeof(float); // XXX64: q is remote
+//            float* q = s->q + h * head_size; // XXX64: q is remote
+        // attention scores for this head
+        REUPtr att = s->att + ((uint32_t)h * p->seq_len) * sizeof(float); // XXX64: att is remote
+//            float* att = s->att + h * p->seq_len; // XXX64: att is remote
+        // iterate over all timesteps, including the current one
+        REUPtr atti = att;
+        for (uint16_t t = 0; t <= pos; t++)
+        {
+            // get the key vector for this head and at this timestep
+            REUPtr qq = q;
+            REUPtr k = s->key_cache + ((uint32_t)loff + t * kv_dim + (h / kv_mul) * head_size) * sizeof(float); // XXX64: key_cache is remote
+//                float* k = s->key_cache + loff + t * kv_dim + (h / kv_mul) * head_size; // XXX64: key_cache is remote
+            // calculate the attention score as the dot product of q and k
+            float score = 0.0;
+            float qi, ki;
+            for (uint8_t i = 0; i < head_size; i++)
+            {
+                REU_getf(qq, &qi, sizeof(float)); // XXX can buffer whole thing
+                REU_getf(k, &ki, sizeof(float));
+                score += qi * ki;
+//                printf("%d:%f:%f,SCORE=%f\n",i,qi,ki,score);
+                qq += sizeof(float);
+                k += sizeof(float);
+//                    score += q[i] * k[i];
+            }
+//            printf("%d:%d,SCORE=%f\n",h,t,score);
+            score /= sqrt(head_size);
+            // save the score to the attention buffer
+            REU_putf(atti, &score, sizeof(float)); // XXX buffer
+            atti += sizeof(float);
+//                att[t] = score;
+        }
+        dump_matrix(att, pos, "ATT");
+
+        // softmax the scores to get attention weights, from 0..pos inclusively
+        softmax(att, pos + 1);
+        dump_matrix(att, pos, "ATTSOFTMAX");
+
+        // weighted sum of the values, store back into xb
+        float *xb = s->xb + h * head_size;
+        memset(xb, 0, head_size * sizeof(float));
+        atti = att;
+        for (uint16_t t = 0; t <= pos; t++)
+        {
+            // get the value vector for this head and at this timestep
+            REUPtr v = s->value_cache + ((uint32_t)loff + t * kv_dim + (h / kv_mul) * head_size) * sizeof(float);
+//                float* v = s->value_cache + loff + t * kv_dim + (h / kv_mul) * head_size;
+            // get the attention weight for this timestep
+            float a;
+            REU_getf(atti, &a, sizeof(float));
+            atti += sizeof(float);
+//                float a = att[t];
+            float vi;
+            // accumulate the weighted value into xb
+            for (uint8_t i = 0; i < head_size; i++)
+            {
+                REU_getf(v, &vi, sizeof(float));
+                xb[i] += a * vi;
+                v += sizeof(float);
+//                    xb[i] += a * v[i];
+            }
+        }
+    }
+}
+
 //C64 todo/test
 float* forward(Transformer* transformer, uint16_t token, uint16_t pos) {
 
@@ -237,70 +310,13 @@ float* forward(Transformer* transformer, uint16_t token, uint16_t pos) {
         dump_matrix(s->q, dim, "SQROPE");
         dump_matrix(s->k, kv_dim, "SKROPE");
 
-        printf("ATTN: %d\n",p->n_heads);
-        // multihead attention. iterate over all heads
-        for (uint16_t h = 0; h < p->n_heads; h++) {
-            // get the query vector for this head
-            REUPtr q = s->q + ((uint32_t)h * head_size)*sizeof(float); // XXX64: q is remote
-//            float* q = s->q + h * head_size; // XXX64: q is remote
-            // attention scores for this head
-            REUPtr att = s->att + ((uint32_t)h * p->seq_len)*sizeof(float); // XXX64: att is remote
-//            float* att = s->att + h * p->seq_len; // XXX64: att is remote
-            // iterate over all timesteps, including the current one
-            REUPtr atti = att;
-            for (uint16_t t = 0; t <= pos; t++) {
-                // get the key vector for this head and at this timestep
-                REUPtr k = s->key_cache + ((uint32_t)loff + t * kv_dim + (h / kv_mul) * head_size)*sizeof(float); // XXX64: key_cache is remote
-//                float* k = s->key_cache + loff + t * kv_dim + (h / kv_mul) * head_size; // XXX64: key_cache is remote
-                // calculate the attention score as the dot product of q and k
-                float score = 0.0;
-                float qi, ki;
-                for (uint16_t i = 0; i < head_size; i++) {
-                    REU_getf(q, &qi, sizeof(float)); // XXX can buffer whole thing
-                    REU_getf(k, &ki, sizeof(float));
-                    score += qi * ki;
-                    q += sizeof(float);
-                    k += sizeof(float);
-//                    score += q[i] * k[i];
-                }
-                score /= sqrt(head_size);
-                // save the score to the attention buffer
-                REU_putf(atti, &score, sizeof(float)); // XXX buffer
-                atti += sizeof(float);
-//                att[t] = score;
-            }
-
-            // softmax the scores to get attention weights, from 0..pos inclusively
-            softmax(att, pos + 1);
-
-            // weighted sum of the values, store back into xb
-            float* xb = s->xb + h * head_size;
-            memset(xb, 0, head_size * sizeof(float));
-            atti = att;
-            for (uint16_t t = 0; t <= pos; t++) {
-                // get the value vector for this head and at this timestep
-                REUPtr v = s->value_cache + ((uint32_t)loff + t * kv_dim + (h / kv_mul) * head_size)*sizeof(float);
-//                float* v = s->value_cache + loff + t * kv_dim + (h / kv_mul) * head_size;
-                // get the attention weight for this timestep
-                float a;
-                REU_getf(atti, &a, sizeof(float));
-                atti += sizeof(float);
-//                float a = att[t];
-                float vi;
-                // accumulate the weighted value into xb
-                for (uint16_t i = 0; i < head_size; i++) {
-                    REU_getf(v, &vi, sizeof(float));
-                    xb[i] += a * vi;
-                    v += sizeof(float);
-//                    xb[i] += a * v[i]; 
-                }
-            }
-        }
+        attn(p, s, head_size, pos, loff, kv_dim, kv_mul);
 
         // final matmul to get the output of the attention
         matmul_l(s->xb2, s->xb, w->wo + ((uint32_t)l*dim*dim)*sizeof(float), dim, dim);
 
         // residual connection back into x
+        printf("DIM=%d\n",dim);
         for (uint16_t i = 0; i < dim; i++) {
             x[i] += s->xb2[i];
         }
@@ -315,6 +331,7 @@ float* forward(Transformer* transformer, uint16_t token, uint16_t pos) {
         matmul_l(s->hb2, s->xb, w->w3 + ((uint32_t)l*dim*hidden_dim)*sizeof(float), dim, hidden_dim);
 
         // SwiGLU non-linearity
+        printf("HIDDEN_DIM=%d\n",hidden_dim);
         for (uint16_t i = 0; i < hidden_dim; i++) {
             float val = s->hb[i];
             // silu(x)=x*σ(x), where σ(x) is the logistic sigmoid

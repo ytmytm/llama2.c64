@@ -8,15 +8,16 @@
 - tokenizer2.bin wciągany binarnie w tokenizer64.c
 
 nnet64.c
+- wspólne offsety można wydzielić (są takie same dal key_cache i value_cache?)
 + potrzebuje przypadku testowego native (tak samo pierwsze 1-2 mnożenia)
 + nnet64 rmsnorm()
 + nnet64 softmax()
 + nnet64 rope()
     - slightly different results (b/c of numerical differences?) may affect further calculations
-- nnet64 attn
-    - blokuje się wewnątrz, też wydzielić do funkcji
-    - test values
-- nnet64 forward() (i jego test) potrzebuje przerobienia na arytmetykę pointerów w REU
++ nnet64 attn()
+    + blokuje się wewnątrz, też wydzielić do funkcji
+    + test values
++ nnet64 forward() (i jego test) potrzebuje przerobienia na arytmetykę pointerów w REU
     - jeśli dodam matmul_local (wynik w local) to s->q też przywrócić do local (+uaktualnić test)
     - s->q przywrócić do local (użyć matmul_local)
     - wszędzie w licznikach gdzie było int daję uint16_t (dobrze?)
