@@ -5,7 +5,7 @@
 #include <stdio.h>
 
 #include "nnet64.h"
-#include "nnet.h"
+//#include "nnet.h"
 
 void dump_matrix(REUPtr xout, int d, const char* name);
 void dump_matrix_local(float* xout, int d, const char* name);
