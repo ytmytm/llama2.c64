@@ -10,4 +10,5 @@ log
 run
 runfull
 test-nnet
+test-sampler
 .vscode

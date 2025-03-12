@@ -29,4 +29,7 @@ void free_sampler(Sampler* sampler);
 // sample the token given the logits and some hyperparameters
 uint16_t sample(Sampler* sampler, float* logits);
 
+uint32_t random_u32(uint32_t *state);
+float random_f32(uint32_t *state);
+
 #endif // SAMPLER_H

@@ -1,5 +1,10 @@
 /* Inference for Llama-2 Transformer model in pure C */
 
+#include <math.h>
+#ifdef DEBUG
+#include <stdio.h>
+#endif
+
 #include "sampler64.h"
 
 // ----------------------------------------------------------------------------
@@ -104,14 +109,17 @@ void free_sampler(Sampler* sampler) {
 }
 
 uint32_t random_u32(uint32_t *state) {
-    // xorshift rng: https://en.wikipedia.org/wiki/Xorshift#xorshift.2A
-    *state ^= *state >> 12;
-    *state ^= *state << 25;
-    *state ^= *state >> 27;
-    return (*state * 0x2545F491) >> 32;
+    // xorshift* rng: https://en.wikipedia.org/wiki/Xorshift#xorshift.2A
+    uint32_t x = *state;
+    x ^= x << 13;
+    x ^= x >> 17;
+    x ^= x << 5;
+    *state = x;
+    return x;
 }
+
 float random_f32(uint32_t *state) { // random float32 in [0,1)
-    return (random_u32(state) >> 8) / 16777216.0f;
+    return (random_u32(state) >> 8) / 16777216.0;
 }
 
 // same softmax as in nnet64.c, but with local buffer
@@ -134,12 +142,20 @@ void softmax_local(float* x, uint16_t size) {
         for (uint16_t i = 0; i < size; i++) {
             x[i] /= sum;
         }
+        // dump
+#ifdef DEBUG
+        printf("SOFTMAX :SIZE=%d\n",size);
+        for (uint16_t i = 0; i < size; i++) {
+            printf("%f\t",x[i]);
+        }
+        printf("\n");
+#endif
 }
 
 uint16_t sample(Sampler* sampler, float* logits) {
     // sample the token given the logits and some hyperparameters
     uint16_t next;
-    if (sampler->temperature == 0.0f) {
+    if (sampler->temperature == 0.0) {
         // greedy argmax sampling: take the token with the highest probability
         next = sample_argmax(logits, sampler->vocab_size);
     } else {

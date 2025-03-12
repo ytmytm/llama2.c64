@@ -11,6 +11,12 @@ test:	run runfull
 	./run stories260K.bin -z tok512.bin -t $(TEMP) -s $(SEED) -n $(NTOKENS) -i "Once upon"
 	./run stories260K.bin -t $(TEMP) -s $(SEED) -n $(NTOKENS) -i "Once upon"
 
+test-sampler: sampler64.c sampler64.h test-sampler.c
+	gcc $(CFLAGS) sampler64.c
+	gcc $(CFLAGS) test-sampler.c
+	gcc test-sampler.o sampler64.o -o test-sampler $(LDFLAGS)
+	./test-sampler
+
 test-tokenizer: tokenizer.c tokenizer.h test-tokenizer.c util.c util.h
 	gcc $(CFLAGS) tokenizer.c
 	gcc $(CFLAGS) util.c

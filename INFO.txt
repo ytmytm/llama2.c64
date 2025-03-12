@@ -33,8 +33,8 @@ nnet64.c
     - uwaga na atrytmetykę wskaźników gdy reu
 
 sampler.c
-- nie testowany, nie kompilowany
-- ma swoje softmax_local (softmax ma remote)
++ przetestowany
++ softmax przetestowany
 - nie obsługuje top-p sampling
 
 test-nnet.c
