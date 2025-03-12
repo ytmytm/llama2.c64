@@ -32,10 +32,14 @@ nnet64.c
     - zobaczyć ile razy to jest użyte, może nie trzeba
     - uwaga na atrytmetykę wskaźników gdy reu
 
-sampler.c
+sampler64.c
 + przetestowany
 + softmax przetestowany
 - nie obsługuje top-p sampling
+
+generate64.c
+~ testowany
+- w sumie to samo co test-tokenizer64 + sample + forward
 
 test-nnet.c
 - ma szybszy matmul2 (operacje tylko na wskaźnikach)
