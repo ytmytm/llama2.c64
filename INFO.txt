@@ -7,6 +7,8 @@
 - tokenizer2.bin zapisany z run.c
 - tokenizer2.bin wciągany binarnie w tokenizer64.c
 
+- chyba lepsze optymalizacje niż -O2 (-O1 default) czy -Os psują program
+
 nnet64.c
 - wspólne offsety można wydzielić (są takie same dal key_cache i value_cache?)
 - buforowanie danych z REU (cały wiersz/kolumna)
