@@ -29,7 +29,7 @@ int main(void) {
 
     mmap_set(MMAP_NO_BASIC);
 
-    iocharmap(IOCHM_PETSCII_2);
+    iocharmap(IOCHM_PETSCII_2); // loses uppercase/lowercase distinction
 
     // default parameters
     char *tokenizer_path = NULL;  // e.g. out/tokenizer.bin
@@ -60,8 +60,8 @@ int main(void) {
     Sampler sampler;
     build_sampler(&sampler, c->vocab_size, temperature, topp, 123456);
 
-    /* test 1 */
-    prompt = (char*)"Once upon a time";
+//    prompt = (char*)"Once upon a time";
+    prompt = (char*)"Zoo";
     generate(&transformer, &tokenizer, &sampler, prompt, steps);
 
     while (true);

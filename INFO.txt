@@ -38,8 +38,8 @@ sampler64.c
 - nie obsługuje top-p sampling
 
 generate64.c
-~ testowany
-- w sumie to samo co test-tokenizer64 + sample + forward
+~ testowany 40s/token (warp) ~ 8min (realtime)
+- test token sequence and sampler result (need to disable other status/debug messages)
 
 test-nnet.c
 - ma szybszy matmul2 (operacje tylko na wskaźnikach)
