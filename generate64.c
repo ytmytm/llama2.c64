@@ -17,11 +17,15 @@ void generate(Transformer *transformer, Tokenizer *tokenizer, Sampler *sampler, 
     // encode the (string) prompt into tokens sequence
     int16_t num_prompt_tokens = 0;
 
+    #ifdef DEBUG
     printf("Allocating generate: prompt_tokens %u bytes\n", (strlen(prompt)+3) * sizeof(int16_t));
+    #endif
     int16_t* prompt_tokens = (int16_t*)malloc((strlen(prompt)+3) * sizeof(int16_t)); // +3 for '\0', ?BOS, ?EOS
     encode(tokenizer, prompt, 1, 0, prompt_tokens, &num_prompt_tokens);
     if (num_prompt_tokens < 1) {
+        #ifdef DEBUG
         printf("something is wrong, expected at least 1 prompt token\n");
+        #endif
         exit(-1);
     }
 

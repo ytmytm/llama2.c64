@@ -1,4 +1,3 @@
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -66,45 +65,61 @@ void load_tokenizer(Tokenizer* t, const char* load_path) {
 
     // Map the data to Tokenizer structure
     char* ptr = t->mmap_ptr;
+    #ifdef DEBUG
     printf("ptr: %x\n", ptr);
+    #endif
 
     t->vocab_size = *(uint16_t*)ptr; // XXX: get REU byte (?int is 32 or 16?)
     ptr += sizeof(uint16_t);
+    #ifdef DEBUG
     printf("ptr: %x\n", ptr);
-
     printf("max_token_length: %d\n", t->max_token_length);
     printf("vocab: %d\n", t->vocab_size);
-
     printf("Allocating vocab: %lu bytes\n", t->vocab_size * sizeof(char*));
+    #endif
     t->vocab = (char**)malloc(t->vocab_size * sizeof(char*));
 
+    #ifdef DEBUG
     printf("Allocating sorted vocab: %lu bytes\n", t->vocab_size * sizeof(char*));
+    #endif
     t->sorted_vocab_str = (char**)malloc(t->vocab_size * sizeof(char*));
 
     t->vocab_scores = (float*)ptr;
     ptr += t->vocab_size * sizeof(float);
+    #ifdef DEBUG
     printf("ptr: %x\n", ptr);
+    #endif
     t->vocab_len = (uint8_t*)ptr;
     ptr += t->vocab_size * sizeof(uint8_t);
+    #ifdef DEBUG
     printf("ptr: %x\n", ptr);
+    #endif
     t->sorted_vocab_id = (uint16_t*)ptr;
     ptr += t->vocab_size * sizeof(uint16_t);
+    #ifdef DEBUG
     printf("ptr: %x\n", ptr);
+    #endif
     for (uint16_t i=0; i < t->vocab_size; i++) {
         t->vocab[i] = (char*)ptr;
         ptr +=  t->vocab_len[i];
 //        printf("%f\t%d\t[%s]\n", t->vocab_scores[i],t->vocab_len[i],t->vocab[i]);
     }
+    #ifdef DEBUG
     printf("ptr: %x\n", ptr);
+    #endif
     for (uint16_t i=0; i < t->vocab_size; i++) {
         t->sorted_vocab_str[i] = t->vocab[t->sorted_vocab_id[i]];
     }
 
+    #ifdef DEBUG
     printf("Loaded %x bytes of tokenizer data [%x]\n", (uint16_t)ptr-(uint16_t)(t->mmap_ptr), t->mmap_size);
+    #endif
 
     // create a temporary buffer that will store merge candidates of always two consecutive tokens
     // *2 for concat, +1 for null terminator +2 for UTF8 (in case max_token_length is 1)
+    #ifdef DEBUG
     printf("Allocating str_buffer: %d bytes\n", (t->max_token_length*2 +1 +2) * sizeof(char));
+    #endif
     t->str_buffer = malloc((t->max_token_length*2 +1 +2) * sizeof(char));
 
     for (uint16_t i = 0; i < 256; i++) {
@@ -131,7 +146,12 @@ char* decode(Tokenizer* t, int16_t prev_token, int16_t token) {
 void encode(Tokenizer* t, char *text, int8_t bos, int8_t eos, int16_t *tokens, int16_t *n_tokens) {
     // encode the string text (input) into an upper-bound preallocated tokens[] array
     // bos != 0 means prepend the BOS token (=1), eos != 0 means append the EOS token (=2)
-    if (text == NULL) { printf("cannot encode NULL text\n"); exit(1); }
+    if (text == NULL) { 
+        #ifdef DEBUG
+        printf("cannot encode NULL text\n"); 
+        #endif
+        exit(1); 
+    }
 
     size_t str_len = 0;
 

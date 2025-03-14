@@ -46,7 +46,9 @@ int main(void) {
     // build the Tokenizer via the tokenizer .bin file
     Tokenizer tokenizer;
     tokenizer_path = (char*)"tokenizer.bin";
+    #ifdef DEBUG
     printf("Using processed tokenizer.bin\n");
+    #endif
     load_tokenizer(&tokenizer, tokenizer_path);
 
     Transformer transformer;

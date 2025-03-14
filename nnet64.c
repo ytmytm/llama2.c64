@@ -14,7 +14,9 @@ void dump_matrix_local(float* xout, int d, const char* name);
 // neural net blocks; the dynamics of the Transformer
 
 void rmsnorm(float* o, float* x, REUPtr weight, uint8_t size) {
+    #ifdef DEBUG
     printf("RMSNORM :SIZE=%d\n",size);
+    #endif
     float wif;
     REUPtr wi = weight;
     // calculate sum of squares
@@ -35,7 +37,9 @@ void rmsnorm(float* o, float* x, REUPtr weight, uint8_t size) {
 
 // x is remote, size is sampler->vocab_size (uint_16t)
 void softmax(REUPtr x, uint16_t size) {
+    #ifdef DEBUG
     printf("SOFTMAX SIZE=%d\n",size);
+    #endif
     float xif;
     REUPtr xi;
     // XXX64 would be faster with local buffer for x[size] to operate here and write back at the end
@@ -73,8 +77,9 @@ void softmax(REUPtr x, uint16_t size) {
 
 // xout is remote, x is local, w is remote, n/d are always dim
 void matmul(REUPtr xout, float* x, REUPtr w, uint8_t n, uint8_t d) {
-//    printf("MATMUL XOUT=%d,XIN=%d:WSIZE=%d\n",4*d,4*n,(uint16_t)4*d*n);
+    #ifdef DEBUG
     printf("MATMUL N=%d,D=%d\n",n,d);
+    #endif
     // W (d,n) @ x (n,) -> xout (d,)
     // by far the most amount of time is spent inside this little function
     REUPtr xo = xout;
@@ -99,8 +104,9 @@ void matmul(REUPtr xout, float* x, REUPtr w, uint8_t n, uint8_t d) {
 
 // xout is local, x is local, w is remote, n/d are always dim
 void matmul_l(float* xout, float* x, REUPtr w, uint8_t n, uint8_t d) {
-//    printf("MATMUL-L XOUT=%d,XIN=%d:WSIZE=%d\n",4*d,4*n,(uint16_t)4*d*n);
+    #ifdef DEBUG
     printf("MATMUL-L DIMS N=%d,D=%d\n",n,d);
+    #endif
     // W (d,n) @ x (n,) -> xout (d,)
     // by far the most amount of time is spent inside this little function
     float *xo = xout;
@@ -123,8 +129,10 @@ void matmul_l(float* xout, float* x, REUPtr w, uint8_t n, uint8_t d) {
 
 // xout is local, x is local, w is remote, n/d are always dim
 void matmul_ll(float* xout, float* x, REUPtr w, uint8_t n, uint16_t d) {
+    #ifdef DEBUG
+    printf("MATMUL-LL DIMS N=%d,D=%d\n",n,d);
+    #endif
     //    printf("MATMUL-L XOUT=%d,XIN=%d:WSIZE=%d\n",4*d,4*n,(uint16_t)4*d*n);
-        printf("MATMUL-LL DIMS N=%d,D=%d\n",n,d);
         // W (d,n) @ x (n,) -> xout (d,)
         // by far the most amount of time is spent inside this little function
         float *xo = xout;
@@ -147,8 +155,10 @@ void matmul_ll(float* xout, float* x, REUPtr w, uint8_t n, uint16_t d) {
     
 void rope(uint8_t dim, RunState64 *s, uint8_t head_size, uint16_t pos, uint8_t kv_dim)
 {
-    // RoPE relative positional encoding: complex-valued rotate q and k in each head
+    #ifdef DEBUG
     printf("ROPE: %d:%d\n", dim, kv_dim);
+    #endif
+    // RoPE relative positional encoding: complex-valued rotate q and k in each head
     REUPtr vecq = s->q; // the vector to rotate (query or key)
     REUPtr veck = s->k; // the vector to rotate (query or key)
     float vi[2];
@@ -184,7 +194,9 @@ void rope(uint8_t dim, RunState64 *s, uint8_t head_size, uint16_t pos, uint8_t k
 
 void attn(Config64 *p, RunState64 *s, uint8_t head_size, uint16_t pos, uint32_t loff, uint8_t kv_dim, uint8_t kv_mul)
 {
+    #ifdef DEBUG
     printf("ATTN: %d,%d\n", p->n_heads,head_size);
+    #endif
     // multihead attention. iterate over all heads
     for (uint8_t h = 0; h < p->n_heads; h++)
     {
@@ -285,7 +297,9 @@ float* forward(Transformer* transformer, uint16_t token, uint16_t pos) {
 
     // forward all the layers
     for(uint8_t l = 0; l < p->n_layers; l++) {
+        #ifndef DEBUG
         printf("LAYER: %d OF %d\n",l,p->n_layers);
+        #endif
 
         // attention rmsnorm
         // XXX64: xb is local, x is local, weight is remote
