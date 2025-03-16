@@ -7,6 +7,8 @@
 #include "transformer64.h"
 #include "transformer64.c"
 
+#include "math.c"
+
 #include "nnet64.h"
 #include "nnet64.c"
 

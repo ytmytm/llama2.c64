@@ -10,6 +10,7 @@
 #include "sampler64.h"
 #include "util.h"
 #include "generate64.h"
+#include "math.c"
 #include "tokenizer64.c"
 #include "transformer64.c"
 #include "nnet64.c"

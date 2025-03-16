@@ -168,9 +168,13 @@ void rope(uint8_t dim, RunState64 *s, uint8_t head_size, uint16_t pos, uint8_t k
         int head_dim = i % head_size;
 //        printf("%d:HEAD_SIZE=%d,HEAD_DIM=%d\n",i,head_size,head_dim);
         float val = pos * 1.0 / pow(10000.0, head_dim / (float)head_size);
-        float fcr = cos(val);
-        float fci = sin(val);
-//        printf("%d:VAL=%f,FCR=%f,FCI=%f\n",i,val,fcr,fci);
+  //      float fcr = my_cos(val);
+  //      float fci = my_sin(val);
+  //      printf("%d:VAL=%f,FCR=%f,FCI=%f\n",i,val,fcr,fci);
+  //      my_sincos(val, &fci, &fcr);
+  //      printf("%d:VAL=%f,FCR=%f,FCI=%f\n",i,val,fcr,fci);
+        float fcr, fci;
+        my_sincos(val, &fci, &fcr);
         uint8_t rotn = i < kv_dim ? 2 : 1; // how many vectors? 2 = q & k, 1 = q only
         for (uint8_t v = 0; v < rotn; v++)
         {
