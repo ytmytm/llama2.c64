@@ -135,7 +135,7 @@ void softmax_local(float* x, uint16_t size) {
         // exp and sum
         float sum = 0.0;
         for (uint16_t i = 0; i < size; i++) {
-            x[i] = exp(x[i] - max_val);
+            x[i] = my_exp(x[i] - max_val);
             sum += x[i];
         }
         // normalize

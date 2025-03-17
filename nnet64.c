@@ -60,7 +60,7 @@ void softmax(REUPtr x, uint16_t size) {
     xi = x;
     for (uint16_t i = 0; i < size; i++) {
         REU_getf(xi, &xif, sizeof(float));
-        xif = exp(xif - max_val);
+        xif = my_exp(xif - max_val);
         REU_putf(xi, &xif, sizeof(float)); // write back locally changed
         sum += xif;
         xi += sizeof(float);
@@ -333,14 +333,21 @@ float* forward(Transformer* transformer, uint16_t token, uint16_t pos) {
         // final matmul to get the output of the attention
         matmul_l(s->xb2, s->xb, w->wo + ((uint32_t)l*dim*dim)*sizeof(float), dim, dim);
 
+//        dump_matrix_local(s->xb, dim, "FINALMM-XB");
+//        dump_matrix_local(s->xb2, dim, "FINALMM-XB2");
+
         // residual connection back into x
         for (uint8_t i = 0; i < dim; i++) {
             x[i] += s->xb2[i];
         }
 
+//        dump_matrix_local(x, dim, "RESID-X");
+
         // ffn rmsnorm
         // XXX64: xb is local, x is local, weight is remote
         rmsnorm(s->xb, x, w->rms_ffn_weight + ((uint32_t)l*dim)*sizeof(float), dim);
+
+//        dump_matrix_local(s->xb, dim, "RMS");
 
         // Now for FFN in PyTorch we have: self.w2(F.silu(self.w1(x)) * self.w3(x))
         // first calculate self.w1(x) and self.w3(x)
@@ -348,22 +355,30 @@ float* forward(Transformer* transformer, uint16_t token, uint16_t pos) {
         matmul_l(s->hb2, s->xb, w->w3 + ((uint32_t)l*dim*hidden_dim)*sizeof(float), dim, hidden_dim);
 
         // SwiGLU non-linearity
+//        printf("SWIGLU %d\n",hidden_dim);
         for (uint8_t i = 0; i < hidden_dim; i++) {
             float val = s->hb[i];
+//            float vv = exp(-val);
+//            float vw = my_exp(-val);
             // silu(x)=x*σ(x), where σ(x) is the logistic sigmoid
-            val *= (1.0 / (1.0 + exp(-val)));
+//            printf("SHB[%d]=%f\t%f\t%f\t",i,val,vv,vw);
+            val *= (1.0 / (1.0 + my_exp(-val)));
+//            printf("%f\t",val);
             // elementwise multiply with w3(x)
             val *= s->hb2[i];
+//            printf("VAL=%f\n",val);
             s->hb[i] = val;
         }
 
         // final matmul to get the output of the ffn
         matmul_l(s->xb, s->hb, w->w2 + ((uint32_t)l*dim*hidden_dim)*sizeof(float), hidden_dim, dim);
+//        dump_matrix_local(s->xb, dim, "FMM-XB");
 
         // residual connection
         for (uint8_t i = 0; i < dim; i++) {
             x[i] += s->xb[i];
         }
+//        dump_matrix_local(x, dim, "RESID2-X");
     }
 
     // final rmsnorm

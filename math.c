@@ -1,5 +1,7 @@
 // https://raw.githubusercontent.com/drmortalwombat/oscar64/refs/heads/main/include/math.c
 // SIN method from https://www.c64-wiki.com/wiki/SIN with optimization for small angles
+// EXP method from https://www.c64-wiki.com/wiki/EXP
+// general info in https://www.c64-wiki.com/wiki/POLY1
 
 #include <math.h>
 
@@ -125,4 +127,38 @@ void my_sincos(float f, float *s, float *c)
 
     *s = sine_value * sign_s;
     *c = cosine_value * sign_c;
+}
+
+float my_exp(float f)
+{
+    static const union {
+        uint32_t i;
+        float f;
+    } log2e_const = { 0x3FB8AA3B };  // log_2(e) w IEEE 754
+
+//	f *= 1.442695041; // f*=log_2(e)
+    f *= log2e_const.f; // f*=log_2(e)
+
+	float	ff = floor(f), g = f - ff; // split into integer and fractional part
+	
+	int	fi = (int)ff;
+	
+	union {
+		float	f;
+		int		i[2];
+	}	x;
+	x.f = 0;
+
+	x.i[1] = (fi + 0x7f) << 7;
+	
+    float s = 2.1498763701e-5;
+    s = s * g + 1.4352314037e-4;
+    s = s * g + 1.3422634825e-3;
+    s = s * g + 9.6140170135e-3;
+    s = s * g + 5.5505126860e-2;
+    s = s * g + 0.24022638460;
+    s = s * g + 0.69314718618;
+    s = s * g + 1.0;
+
+	return s * x.f;
 }
