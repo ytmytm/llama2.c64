@@ -36,6 +36,7 @@ void generate(Transformer *transformer, Tokenizer *tokenizer, Sampler *sampler, 
     int token = prompt_tokens[0]; // kick off with the first token in the prompt
     int pos = 0;     // position in the sequence
     while (pos < steps) {
+        printf("pos=%d of %d token=%d\n",pos,steps,token);
 
         // forward the transformer to get logits for the next token
         float* logits = forward(transformer, token, pos);
