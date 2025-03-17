@@ -173,14 +173,19 @@ float* forward(Transformer* transformer, int token, int pos) {
 
         // final matmul to get the output of the attention
         matmul(s->xb2, s->xb, w->wo + l*dim*dim, dim, dim);
+        dump_matrix(s->xb, dim, "FINALMM-XB");
+        dump_matrix(s->xb2, dim, "FINALMM-XB2");
 
         // residual connection back into x
         for (int i = 0; i < dim; i++) {
             x[i] += s->xb2[i];
         }
+        dump_matrix(s->x, dim, "RESID-X");
 
         // ffn rmsnorm
         rmsnorm(s->xb, x, w->rms_ffn_weight + l*dim, dim);
+
+        dump_matrix(s->xb, dim, "RMS");
 
         // Now for FFN in PyTorch we have: self.w2(F.silu(self.w1(x)) * self.w3(x))
         // first calculate self.w1(x) and self.w3(x)
@@ -188,22 +193,29 @@ float* forward(Transformer* transformer, int token, int pos) {
         matmul(s->hb2, s->xb, w->w3 + l*dim*hidden_dim, dim, hidden_dim);
 
         // SwiGLU non-linearity
+        printf("SWIGLU %d\n",hidden_dim);
         for (int i = 0; i < hidden_dim; i++) {
             float val = s->hb[i];
+            float vv = exp(-val);
             // silu(x)=x*σ(x), where σ(x) is the logistic sigmoid
+            printf("SHB[%d]=%f\t%f\t",i,val,vv);
             val *= (1.0f / (1.0f + expf(-val)));
+//            printf("%f\t",val);
             // elementwise multiply with w3(x)
             val *= s->hb2[i];
+            printf("VAL=%f\n",val);
             s->hb[i] = val;
         }
 
         // final matmul to get the output of the ffn
         matmul(s->xb, s->hb, w->w2 + l*dim*hidden_dim, hidden_dim, dim);
+        dump_matrix(s->xb, dim, "FMM-XB");
 
         // residual connection
         for (int i = 0; i < dim; i++) {
             x[i] += s->xb[i];
         }
+        dump_matrix(x, dim, "RESID2-X");
     }
 
     // final rmsnorm
