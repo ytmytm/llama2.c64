@@ -60,7 +60,7 @@ float my_cos(float f)
 	return my_sin(f + 0.5 * PI);
 }
     
-void my_sinpolyeval(float g2, float g, float *r) {
+inline void my_sinpolyeval(float g2, float g, float *r) {
     *r = ((((((-14.381390672) * g2 
         + 42.007797122) * g2 
         - 76.704170257) * g2 
