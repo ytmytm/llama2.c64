@@ -32,6 +32,17 @@ test-nnet: transformer.c transformer.h nnet.c nnet.h util.c util.h test-nnet.c
 	gcc test-nnet.o transformer.o nnet.o util.o -o test-nnet $(LDFLAGS)
 	./test-nnet
 
+test-generate:	test-generate.c tokenizer.c tokenizer.h sampler.c sampler.h nnet.c nnet.h transformer.c transformer.h util.c util.h generate.c generate.h
+	gcc $(CFLAGS) transformer.c
+	gcc $(CFLAGS) tokenizer.c
+	gcc $(CFLAGS) sampler.c
+	gcc $(CFLAGS) nnet.c
+	gcc $(CFLAGS) util.c
+	gcc $(CFLAGS) generate.c
+	gcc $(CFLAGS) test-generate.c
+	gcc test-generate.o tokenizer.o sampler.o nnet.o transformer.o util.o generate.o -o test-generate $(LDFLAGS)
+
+
 run:	run.c tokenizer.c tokenizer.h sampler.c sampler.h nnet.c nnet.h transformer.c transformer.h util.c util.h generate.c generate.h
 	gcc $(CFLAGS) transformer.c
 	gcc $(CFLAGS) tokenizer.c

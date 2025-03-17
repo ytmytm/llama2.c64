@@ -10,6 +10,8 @@
 #include "nnet.h"
 #include "util.h"
 
+void dump_matrix(float* xout, int d, const char* name);
+
 // ----------------------------------------------------------------------------
 // generation loop
 
@@ -37,6 +39,8 @@ void generate(Transformer *transformer, Tokenizer *tokenizer, Sampler *sampler, 
 
         // forward the transformer to get logits for the next token
         float* logits = forward(transformer, token, pos);
+
+        dump_matrix(logits,64,"LOGITS");
 
         // advance the state machine
         if (pos < num_prompt_tokens - 1) {

@@ -5,11 +5,15 @@
 #include "sampler.h"
 #include "nnet.h"
 
+void dump_matrix(float* xout, int d, const char* name);
+
 // ----------------------------------------------------------------------------
 // The Sampler, which takes logits and returns a sampled token
 // sampling can be done in a few ways: greedy argmax, sampling, top-p sampling
 
 int sample_argmax(float* probabilities, int n) {
+    printf("SAMPLE_ARGMAX %d\n",n);
+    dump_matrix(probabilities,n,"PROB");
     // return the index that has the highest probability
     int max_i = 0;
     float max_p = probabilities[0];
@@ -17,6 +21,7 @@ int sample_argmax(float* probabilities, int n) {
         if (probabilities[i] > max_p) {
             max_i = i;
             max_p = probabilities[i];
+            printf("I=%d,MAX=%f\n",i,max_p);
         }
     }
     return max_i;

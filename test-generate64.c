@@ -26,6 +26,27 @@
 //#pragma stacksize(4096)
 //#pragma heapsize(8192)
 
+void dump_matrix(REUPtr xout, int d, const char* name) {
+	printf("MATRIX:%s,%d\n",name,d);
+	int i;
+    float f;
+	for (i=0;i<d;i++) {
+        REU_getf(xout, &f, sizeof(float));
+		printf("%f\t",f);
+        xout += sizeof(float);
+	}
+	printf("\n");
+}
+
+void dump_matrix_local(float* xout, int d, const char* name) {
+	printf("MATRIX:%s,%d\n",name,d);
+	int i;
+	for (i=0;i<d;i++) {
+		printf("%f\t",xout[i]);
+	}
+	printf("\n");
+}
+
 int main(void) {
 
     mmap_set(MMAP_NO_BASIC);
@@ -36,7 +57,7 @@ int main(void) {
     char *tokenizer_path = NULL;  // e.g. out/tokenizer.bin
     float temperature = 0.0;    // 0.0 = greedy deterministic. 1.0 = original. don't set higher
     float topp = 0.9;           // top-p in nucleus sampling. 1.0 = off. 0.9 works well, but slower
-    int steps = 16;            // number of steps to run for
+    int steps = 64;            // number of steps to run for
     char *prompt = NULL;        // prompt string
 
     // parameter validation/overrides
@@ -65,6 +86,7 @@ int main(void) {
 
 //    prompt = (char*)"Once upon a time";
     prompt = (char*)"Zoo";
+//    prompt = (char*)"Onceupon";
     generate(&transformer, &tokenizer, &sampler, prompt, steps);
 
     while (true);

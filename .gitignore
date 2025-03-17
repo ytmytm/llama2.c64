@@ -11,4 +11,5 @@ run
 runfull
 test-nnet
 test-sampler
+test-generate
 .vscode
