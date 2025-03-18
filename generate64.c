@@ -33,18 +33,19 @@ void generate(Transformer *transformer, Tokenizer *tokenizer, Sampler *sampler, 
     for (uint16_t i = 0; i < num_prompt_tokens; i++) {
         printf("%d ", prompt_tokens[i]);
     }
+    printf("\n");
 
     // start the main loop
     int16_t next;        // will store the next token in the sequence
     int16_t token = prompt_tokens[0]; // kick off with the first token in the prompt
     uint16_t pos = 0;     // position in the sequence
     while (pos < steps) {
-        printf("pos=%d of %d token=%d\n",pos,steps,token);
+        if (pos==200) printf("pos=%d of %d token=%d\n",pos,steps,token);
 
         // forward the transformer to get logits for the next token
         float* logits = forward(transformer, token, pos);
 
-        dump_matrix_local(logits,64,"LOGITS");
+        if (pos==200) dump_matrix_local(logits,64,"LOGITS");
 
         // advance the state machine
         if (pos < num_prompt_tokens - 1) {

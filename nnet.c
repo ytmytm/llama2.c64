@@ -76,11 +76,23 @@ float* forward(Transformer* transformer, int token, int pos) {
     int kv_mul = p->n_heads / p->n_kv_heads; // integer multiplier of the kv sharing in multiquery
     int hidden_dim =  p->hidden_dim;
     int head_size = dim / p->n_heads;
+/*
+    printf("WCLS[0]=%f\n",w->wcls[0]);
+    printf("WCLS[1]=%f\n",w->wcls[1]);
+    printf("WCLS[2]=%f\n",w->wcls[2]);
+    printf("WCLS[128]=%f\n",w->wcls[128]);
+    printf("WCLS[129]=%f\n",w->wcls[129]);
+    printf("WCLS[130]=%f\n",w->wcls[130]);
+    printf("WCLS[32]=%f\n",w->wcls[32]);
+    printf("WCLS[64]=%f\n",w->wcls[64]);
+    printf("WCLS[256]=%f\n",w->wcls[256]);
+*/
 
     // copy the token embedding into x
     float* content_row = w->token_embedding_table + token * dim;
     memcpy(x, content_row, dim*sizeof(*x));
 
+    printf("TOKEN=%d\n",token);
     dump_matrix(x, dim, "TOKEN");
 
     // forward all the layers
@@ -103,6 +115,7 @@ float* forward(Transformer* transformer, int token, int pos) {
         dump_matrix(s->k, kv_dim, "SK");
         matmul(s->v, s->xb, w->wv + l*dim*kv_dim, dim, kv_dim);
         dump_matrix(s->v, kv_dim, "SV");
+        dump_matrix(s->q, dim, "SQ-AGAIN");
 
         // RoPE relative positional encoding: complex-valued rotate q and k in each head
         printf("ROPE: %d,%d\n",dim,kv_dim);
@@ -112,17 +125,17 @@ float* forward(Transformer* transformer, int token, int pos) {
             float val = pos * freq;
             float fcr = cosf(val);
             float fci = sinf(val);
-//            printf("%i:HEAD_SIZE=%i,HEAD_DIM=%i\n",i,head_size,head_dim);
-//            printf("%d:VAL=%f,FCR=%f,FCI=%f\n",i,val,fcr,fci);
+            printf("%i:HEAD_SIZE=%i,HEAD_DIM=%i\n",i,head_size,head_dim);
+            printf("%d:VAL=%f,FCR=%f,FCI=%f\n",i,val,fcr,fci);
             int rotn = i < kv_dim ? 2 : 1; // how many vectors? 2 = q & k, 1 = q only
             for (int v = 0; v < rotn; v++) {
                 float* vec = v == 0 ? s->q : s->k; // the vector to rotate (query or key)
                 float v0 = vec[i];
                 float v1 = vec[i+1];
-//                printf("%d:%d:%f-%f\t",i,v,v0,v1);
+                printf("%d:%d:%f-%f\t",i,v,v0,v1);
                 vec[i]   = v0 * fcr - v1 * fci;
                 vec[i+1] = v0 * fci + v1 * fcr;
-//                printf("%f-%f\n",vec[i],vec[i+1]);
+                printf("%f-%f\n",vec[i],vec[i+1]);
             }
         }
         dump_matrix(s->q, dim, "SQROPE");
@@ -215,11 +228,13 @@ float* forward(Transformer* transformer, int token, int pos) {
         for (int i = 0; i < dim; i++) {
             x[i] += s->xb[i];
         }
+        printf("LAYER=%lli\n",l);
         dump_matrix(x, dim, "RESID2-X");
     }
 
     // final rmsnorm
     rmsnorm(x, x, w->rms_final_weight, dim);
+    dump_matrix(x, dim, "RMS-X-FINAL");
 
     // classifier into logits
     matmul(s->logits, x, w->wcls, p->dim, p->vocab_size);

@@ -78,6 +78,10 @@ int main(void) {
     printf("REUBASE FINAL=%lu\n", reu_base);
 
 	// from nnet64.c forward()
+    Config64* p = transformer.config;
+    TransformerWeights64* w = &transformer.weights;
+    RunState64* s = &transformer.state;
+    int dim = p->dim;
 if (0) {
 	// a few convenience variables
     Config64* p = transformer.config;
@@ -154,10 +158,44 @@ if (0) {
     softmax(w->wq, dim);
     dump_matrix(w->wq, dim, "SOFTMAX-XB");
 }
+
     float *logits;
-    logits = forward(&transformer, 1, 1);
+
+    // eksperyment
+//    logits = forward(&transformer, 410, 1);
+//    dump_matrix_local(logits, 64, "LOGITS");
+    // pierwsza runda wyglada, ok dopiero druga jest zla(?)
+    // liczenie 410 na pozycji 1 (najpierw) ok
+    // potem 1 na pozycji 0 (potem) też ok
+    // potem 410 na pozycji 1 (znowu) RESID2-X jest zupełnie inne; ATTSOFTMAX też, już na layer=0
+    // na debug skrócić layers do 2?
+    // to coś, co zależy od pos?
+
+    // Zoo
+    // tokens from 'Zoo'
+    // logits[1] should be 8.404342, then 1.329065, then 0.889831
+    //                     8.404346       1.329061       2.317674(!)
+    // on 3rd token: RMS-X-FINAL is 1.107986        0.320713        -1.164740
+    //                should be     1.476869        1.410065        -1.209479
+
+    REUPtr content_row = w->token_embedding_table + ((uint32_t)469 * dim)*sizeof(float);
+    logits = s->x;
+    REU_getf(content_row, logits, dim*sizeof(float));
+    dump_matrix_local(logits, dim, "TOKEN469");
+
+    logits = forward(&transformer, 1, 0);
 //    dump_matrix_local(logits, p->vocab_size, "LOGITS");
     dump_matrix_local(logits, 64, "LOGITS");
+    
+    logits = forward(&transformer, 410, 1);
+    dump_matrix_local(logits, 64, "LOGITS");
+
+    logits = forward(&transformer, 469, 2);
+    dump_matrix_local(logits, 64, "LOGITS");
+
+//    REUPtr content_row = w->token_embedding_table + ((uint32_t)469 * dim)*sizeof(float);
+//    REU_getf(content_row, logits, dim*sizeof(float));
+//    dump_matrix_local(logits, dim, "TOKEN469");
 
     while (true);
 

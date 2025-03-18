@@ -4,6 +4,8 @@
 #include <string.h>
 #include <stdio.h>
 
+#include <conio.h>
+
 #include "nnet64.h"
 //#include "nnet.h"
 
@@ -169,7 +171,7 @@ void rope(uint8_t dim, RunState64 *s, uint8_t head_size, uint16_t pos, uint8_t k
     {
         uint8_t head_dim = i % head_size;
         if (head_dim==0) { val = pos; };
-        if (pos==2) printf("%d:HEAD_SIZE=%d,HEAD_DIM=%d\n",i,head_size,head_dim);
+        if (pos==200) printf("%d:HEAD_SIZE=%d,HEAD_DIM=%d\n",i,head_size,head_dim);
 //        float val = pos;
 //        val *= 1.0 / pow(10000.0, (float)head_dim / (float)head_size);
         float fcr = my_cos(val);
@@ -178,18 +180,18 @@ void rope(uint8_t dim, RunState64 *s, uint8_t head_size, uint16_t pos, uint8_t k
   //      my_sincos(val, &fci, &fcr);
 //        float fcr, fci;
 //        my_sincos(val, &fci, &fcr);
-        if (pos==2) printf("%d:VAL=%f,FCR=%f,FCI=%f\n",i,val,fcr,fci);
+        if (pos==200) printf("%d:VAL=%f,FCR=%f,FCI=%f\n",i,val,fcr,fci);
         uint8_t rotn = i < kv_dim ? 2 : 1; // how many vectors? 2 = q & k, 1 = q only
         for (uint8_t v = 0; v < rotn; v++)
         {
             REUPtr vec = v == 0 ? vecq : veck; // the vector to rotate (query or key)
 //            vec += (uint32_t)i * sizeof(float);
             REU_getf(vec, &vi[0], 2 * sizeof(float));
-            if (pos==2) printf("%d:%d:%f-%f\t",i,v,vi[0],vi[1]);
+            if (pos==200) printf("%d:%d:%f-%f\t",i,v,vi[0],vi[1]);
             vo[0] = vi[0] * fcr - vi[1] * fci;
             vo[1] = vi[0] * fci + vi[1] * fcr;
             REU_putf(vec, &vo[0], 2 * sizeof(float));
-            if (pos==2) printf("%f-%f\n",vo[0],vo[1]);
+            if (pos==200) printf("%f-%f\n",vo[0],vo[1]);
             //                float* vec = v == 0 ? s->q : s->k; // the vector to rotate (query or key) // XXX64: all of these are remote
             //                float v0 = vec[i];
             //                float v1 = vec[i+1];
@@ -292,10 +294,32 @@ float* forward(Transformer* transformer, uint16_t token, uint16_t pos) {
     uint8_t hidden_dim =  p->hidden_dim;
     uint8_t head_size = dim / p->n_heads;
 
+/*
+    float wcls;
+    REU_getf(w->wcls, &wcls, sizeof(float)); printf("WCLS[0]=%f\n",wcls);
+    REU_getf(w->wcls+1*sizeof(float), &wcls, sizeof(float)); printf("WCLS[1]=%f\n",wcls);
+    REU_getf(w->wcls+2*sizeof(float), &wcls, sizeof(float)); printf("WCLS[2]=%f\n",wcls);
+    REU_getf(w->wcls+128*sizeof(float), &wcls, sizeof(float)); printf("WCLS[128]=%f\n",wcls);
+    REU_getf(w->wcls+129*sizeof(float), &wcls, sizeof(float)); printf("WCLS[129]=%f\n",wcls);
+    REU_getf(w->wcls+130*sizeof(float), &wcls, sizeof(float)); printf("WCLS[130]=%f\n",wcls);
+    REU_getf(w->wcls+32*sizeof(float), &wcls, sizeof(float)); printf("WCLS[32]=%f\n",wcls);
+    REU_getf(w->wcls+64*sizeof(float), &wcls, sizeof(float)); printf("WCLS[64]=%f\n",wcls);
+    REU_getf(w->wcls+256*sizeof(float), &wcls, sizeof(float)); printf("WCLS[256]=%f\n",wcls);
+*/
+
+    if (pos==200) {
+        printf("POS=%d, TOKEN=%d HIT ANY KEY\n",pos,token);
+        volatile char c = getch();
+    }
+
     // copy the token embedding into x
     // XXX64: token_embedding_table is remote, x is local
 //    float* content_row = w->token_embedding_table + token * dim;
 //    memcpy(x, content_row, dim*sizeof(*x));
+//REUPtr content_row2 = w->token_embedding_table + ((uint32_t)469 * dim)*sizeof(float);
+//REU_getf(content_row2, x, dim*sizeof(float));
+//if (pos>=0) dump_matrix_local(x, dim, "TOKEN469");
+
     REUPtr content_row = w->token_embedding_table + ((uint32_t)token * dim)*sizeof(float);
     REU_getf(content_row, x, dim*sizeof(float));
 //    for (uint16_t i = 0; i < dim; i++) {
@@ -303,57 +327,58 @@ float* forward(Transformer* transformer, uint16_t token, uint16_t pos) {
 //        content_row += sizeof(float);
 //    }
 
-//    dump_matrix_local(x, dim, "TOKEN");
+    if (pos==200) dump_matrix_local(x, dim, "TOKEN");
 
     // forward all the layers
     for(uint8_t l = 0; l < p->n_layers; l++) {
-        #ifndef DEBUG
+        #ifdef DEBUG
         printf("LAYER: %d OF %d\n",l,p->n_layers);
         #endif
 
         // attention rmsnorm
         // XXX64: xb is local, x is local, weight is remote
         rmsnorm(s->xb, x, w->rms_att_weight + ((uint32_t)l*dim)*sizeof(float), dim);
-//        dump_matrix_local(s->xb, dim, "RMSNORM");
+        if (pos==200) dump_matrix_local(s->xb, dim, "RMSNORM");
 
         // key and value point to the kv cache
-        uint32_t loff = l * p->seq_len * kv_dim; // kv cache layer offset for convenience
-        s->k = s->key_cache + (loff + pos * kv_dim)*sizeof(float);
-        s->v = s->value_cache + (loff + pos * kv_dim)*sizeof(float);
+        uint32_t loff = (uint32_t)l * p->seq_len * kv_dim; // kv cache layer offset for convenience
+        s->k = s->key_cache + (loff + (uint32_t)pos * kv_dim)*sizeof(float);
+        s->v = s->value_cache + (loff + (uint32_t)pos * kv_dim)*sizeof(float);
 
         // qkv matmuls for this position
-//        dump_matrix(w->wq + ((uint32_t)l*dim*dim)*sizeof(float), dim, "WQ");
+        if (pos==200) dump_matrix(w->wq + ((uint32_t)l*dim*dim)*sizeof(float), dim, "WQ");
         matmul(s->q, s->xb, w->wq + ((uint32_t)l*dim*dim)*sizeof(float), dim, dim);
-//        dump_matrix(s->q, dim, "SQ");
+        if (pos==200) dump_matrix(s->q, dim, "SQ");
         matmul(s->k, s->xb, w->wk + ((uint32_t)l*dim*kv_dim)*sizeof(float), dim, kv_dim);
-//        dump_matrix(s->k, kv_dim, "SK");
+        if (pos==200) dump_matrix(s->k, kv_dim, "SK");
         matmul(s->v, s->xb, w->wv + ((uint32_t)l*dim*kv_dim)*sizeof(float), dim, kv_dim);
-//        dump_matrix(s->v, kv_dim, "SV");
+        if (pos==200) dump_matrix(s->v, kv_dim, "SV");
+        if (pos==200) dump_matrix(s->q, kv_dim, "SQ-AGAIN");
 
         rope(dim, s, head_size, pos, kv_dim); // modifies s->q and s->k in place
-//        dump_matrix(s->q, dim, "SQROPE");
-//        dump_matrix(s->k, kv_dim, "SKROPE");
+        if (pos==200) dump_matrix(s->q, dim, "SQROPE");
+        if (pos==200) dump_matrix(s->k, kv_dim, "SKROPE");
 
         attn(p, s, head_size, pos, loff, kv_dim, kv_mul);
 
         // final matmul to get the output of the attention
         matmul_l(s->xb2, s->xb, w->wo + ((uint32_t)l*dim*dim)*sizeof(float), dim, dim);
 
-//        dump_matrix_local(s->xb, dim, "FINALMM-XB");
-//        dump_matrix_local(s->xb2, dim, "FINALMM-XB2");
+        if (pos==200) dump_matrix_local(s->xb, dim, "FINALMM-XB");
+        if (pos==200) dump_matrix_local(s->xb2, dim, "FINALMM-XB2");
 
         // residual connection back into x
         for (uint8_t i = 0; i < dim; i++) {
             x[i] += s->xb2[i];
         }
 
-//        dump_matrix_local(x, dim, "RESID-X");
+        if (pos==200) dump_matrix_local(x, dim, "RESID-X");
 
         // ffn rmsnorm
         // XXX64: xb is local, x is local, weight is remote
         rmsnorm(s->xb, x, w->rms_ffn_weight + ((uint32_t)l*dim)*sizeof(float), dim);
 
-//        dump_matrix_local(s->xb, dim, "RMS");
+        if (pos==200) dump_matrix_local(s->xb, dim, "RMS");
 
         // Now for FFN in PyTorch we have: self.w2(F.silu(self.w1(x)) * self.w3(x))
         // first calculate self.w1(x) and self.w3(x)
@@ -364,35 +389,36 @@ float* forward(Transformer* transformer, uint16_t token, uint16_t pos) {
 //        printf("SWIGLU %d\n",hidden_dim);
         for (uint8_t i = 0; i < hidden_dim; i++) {
             float val = s->hb[i];
-//            float vv = exp(-val);
+            float vv = exp(-val);
 //            float vw = my_exp(-val);
             // silu(x)=x*σ(x), where σ(x) is the logistic sigmoid
-//            printf("SHB[%d]=%f\t%f\t%f\t",i,val,vv,vw);
+            if (pos==200) printf("SHB[%d]=%f\t%f\t",i,val,vv);
             val *= (1.0 / (1.0 + my_exp(-val)));
-//            printf("%f\t",val);
+            if (pos==200) printf("%f\t",val);
             // elementwise multiply with w3(x)
             val *= s->hb2[i];
-//            printf("VAL=%f\n",val);
+            if (pos==200) printf("VAL=%f\n",val);
             s->hb[i] = val;
         }
 
         // final matmul to get the output of the ffn
         matmul_l(s->xb, s->hb, w->w2 + ((uint32_t)l*dim*hidden_dim)*sizeof(float), hidden_dim, dim);
-//        dump_matrix_local(s->xb, dim, "FMM-XB");
+        if (pos==200) dump_matrix_local(s->xb, dim, "FMM-XB");
 
         // residual connection
         for (uint8_t i = 0; i < dim; i++) {
             x[i] += s->xb[i];
         }
-//        dump_matrix_local(x, dim, "RESID2-X");
+        if (pos==200) dump_matrix_local(x, dim, "RESID2-X");
     }
 
     // final rmsnorm
     // XXX64: x is local, x is local, weight is remote
     rmsnorm(x, x, w->rms_final_weight, dim);
+    if (pos==200) dump_matrix_local(x, dim, "RMS-X-FINAL");
 
     // classifier into logits
     matmul_ll(s->logits, x, w->wcls, p->dim, p->vocab_size);
-//    dump_matrix_local(s->logits, p->vocab_size, "LOGITS(FORWARD)");
+    if (pos==200) dump_matrix_local(s->logits, p->vocab_size, "LOGITS(FORWARD)");
     return s->logits;
 }

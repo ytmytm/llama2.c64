@@ -15,8 +15,10 @@ void dump_matrix_local(float* xout, int d, const char* name);
 // sampling can be done in a few ways: greedy argmax, sampling, top-p sampling
 
 uint16_t sample_argmax(float* probabilities, uint16_t n) {
+    #ifdef DEBUG
     printf("SAMPLE_ARGMAX %d\n",n);
     dump_matrix_local(probabilities,n,"PROB");
+    #endif
     // return the index that has the highest probability
     uint16_t max_i = 0;
     float max_p = probabilities[0];
@@ -24,7 +26,9 @@ uint16_t sample_argmax(float* probabilities, uint16_t n) {
         if (probabilities[i] > max_p) {
             max_i = i;
             max_p = probabilities[i];
+            #ifdef DEBUG
             printf("I=%d,MAX=%f\n",i,max_p);
+            #endif
         }
     }
     return max_i;
@@ -161,7 +165,9 @@ void softmax_local(float* x, uint16_t size) {
 uint16_t sample(Sampler* sampler, float* logits) {
     // sample the token given the logits and some hyperparameters
     uint16_t next;
+    #ifdef DEBUG
     printf("SAMPLE temp=%f\n",sampler->temperature);
+    #endif
     if (sampler->temperature == 0.0) {
         // greedy argmax sampling: take the token with the highest probability
         next = sample_argmax(logits, sampler->vocab_size);

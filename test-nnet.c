@@ -70,6 +70,8 @@ int main(int argc, char *argv[]) {
 
 	// from nnet64.c forward()
         Config* p = &transformer.config;
+        TransformerWeights* w = &transformer.weights;
+        int dim = p->dim;
 if (0) {
 	// a few convenience variables
     Config* p = &transformer.config;
@@ -145,9 +147,25 @@ if (0) {
 	dump_matrix(s->q, dim, "SQ-1.0-0.5");
 }
         float *logits;
-        logits = forward(&transformer, 1, 1);
+//        logits = forward(&transformer, 410, 1);
+//        dump_matrix(logits, p->vocab_size, "LOGITS");
+
+        float* content_row;
+        content_row = w->token_embedding_table + 1 * dim;
+        dump_matrix(content_row, dim, "TOK1");
+        content_row = w->token_embedding_table + 410 * dim;
+        dump_matrix(content_row, dim, "TOK410");
+        content_row = w->token_embedding_table + 469 * dim;
+        dump_matrix(content_row, dim, "TOK469");
+
+
+        logits = forward(&transformer, 1, 0);
         dump_matrix(logits, p->vocab_size, "LOGITS");
-    
+        logits = forward(&transformer, 410, 1);
+        dump_matrix(logits, p->vocab_size, "LOGITS");
+        logits = forward(&transformer, 469, 2);
+        dump_matrix(logits, p->vocab_size, "LOGITS");
+
     	return 0;
 }
 
