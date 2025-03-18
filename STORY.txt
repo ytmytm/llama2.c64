@@ -1,0 +1,65 @@
+
+[20250318]
+Fixed rope() and now results with temp=1.0 exactly (up to 5 decimals) match x86 calculations.
+We have tinystories LM running on C64!
+
+There were two bugs involved:
+- rope() calculates sin/cos of val, that is pos divided by 1, 10, 100 etc. for each iteration, up to head_size, then it wraps back to 1
+  original code chose to calculate it every time using pow(), while it's faster to divide by 10
+  on top of that pow(10000.0,0) somehow breaks the floating point result and some operations done on it (like multiplying by pos) will yield INF
+  (reported in https://github.com/drmortalwombat/oscar64/issues/207)
+- my_sincos() is broken, returns wrong cos(2) value; since it doesn't save on calculations much I'll stick to my_sin/my_cos
+
+Commited everything to wrapped_debug branch before cleaning up all that stuff for UI design.
+
+[20250317]
+Found out that sin/cos provided by Oscar math.c have worse accuracy than C64 BASIC.
+Implemented my own functions for that using polynomials from C64 BASIC ROM and got much better results
+Can't really figure out why it's still wrong. Implemented my_exp() (only slightly more accurate), but it didn't do much.
+
+[20250314]
+buffered_reu branch where we keep two input/output buffers so that we can read/write whole vectors (or weight matrix columns).
+It's cleaner, but speedup is completely not visible.
+
+[20250313]
+With sampler64 and generate64 completed we can now run the full thing and read a story. It will take a while, we get token every 40s (on VICE's warp), that's 8m real time.
+(reference PC does it 1.5MM faster)
+
+At least that was the hope - it very quickly diverges from reference result in deterministic (temp=0.0) mode.
+It's a calculation problem or some REU pointer arithmetic (addition and casting to uint32) where one thing overwrites another.
+Hopefully not an intrinsic problem with Oscar64 floating point code, I won't be able to fix that.
+
+[20250311]
+Extract also attention calculation into a new function (VS Code handled that automatically), now we can continue.
+Foward() is completed, can be used in generate() now.
+
+[20250310]
+Continue working on forward(). Got unreliable results, sometimes hangups because function is too big, with too many local variables.
+Pieces can be extract, first rope().
+
+[20250309]
+Ported and tested rmsnorm() and softmax(). Was not too hard.
+Tried to have REU_ptr as float*, but forgot that pointers are 16-bit here and we need at least 24.
+
+[20250308]
+Back to the project. Completed and verified matrix multiplication functions. Had to program 3 of those. Matrix of weights is always
+remote (REU), but one (both) input/output vectors can be either in local memory or in remote.
+On top of that only one multiplicatin works on vector with dimension > 256, so for the most part we can use uint8_t as indexes.
+
+[20250112]
+Briefly came back and started staring at nnet.c to work on nnet64.c. Need to figure out sizes of all these objects to assign smaller data types.
+
+[202410xx]
+Project starts. llama.2c is one giant C file, I split it into several functional blocks:
+- tokenizer
+- transformer
+- nnet
+- sampler
+- generate
+- util
+
+I managed to write tokenizer and token decoder, ported transformer and checked array sizes to asses that it may work, it may fit within 2MB REU.
+Then I got scared by amount of checking and verifications needed.
+
+-- Maciej 'YTM/Elysium' Witkowiak
+
