@@ -29,6 +29,10 @@ void generate(Transformer *transformer, Tokenizer *tokenizer, Sampler *sampler, 
         fprintf(stderr, "something is wrong, expected at least 1 prompt token\n");
         exit(EXIT_FAILURE);
     }
+    printf("prompt_tokens: %u\n", num_prompt_tokens);
+    for (uint16_t i = 0; i < num_prompt_tokens; i++) {
+        printf("%d ", prompt_tokens[i]);
+    }
 
     // start the main loop
     long start = 0;  // used to time our code, only initialized after first iteration

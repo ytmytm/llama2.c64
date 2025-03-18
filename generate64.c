@@ -29,6 +29,11 @@ void generate(Transformer *transformer, Tokenizer *tokenizer, Sampler *sampler, 
         exit(-1);
     }
 
+    printf("prompt_tokens: %u\n", num_prompt_tokens);
+    for (uint16_t i = 0; i < num_prompt_tokens; i++) {
+        printf("%d ", prompt_tokens[i]);
+    }
+
     // start the main loop
     int16_t next;        // will store the next token in the sequence
     int16_t token = prompt_tokens[0]; // kick off with the first token in the prompt
