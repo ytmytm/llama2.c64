@@ -133,6 +133,31 @@ int main(void) {
     }
     printf("\n");
 
+    /* test 6 */
+
+    prompt = (char*)"Zoo";
+
+    printf("prompt: %s\n", prompt);
+    printf("Allocating generate: prompt_tokens %u bytes\n", (strlen(prompt)+3) * sizeof(int32_t));
+    prompt_tokens = (int16_t*)malloc((strlen(prompt)+3) * sizeof(int16_t)); // +3 for '\0', ?BOS, ?EOS
+    const int16_t test6_expected[] = { 1, 410, 469, 347  };
+    encode(&tokenizer, prompt, 1, 0, prompt_tokens, &num_prompt_tokens);
+    printf("prompt_tokens: %u\n", num_prompt_tokens);
+    if (num_prompt_tokens != 4) {
+        printf("something is wrong, expected 4 prompt tokens\n");
+    }
+    for (uint8_t i = 0; i < 4; i++) {
+        printf("%d ", prompt_tokens[i]);
+    }
+    printf("\n");
+    for (uint8_t i = 0; i < 4; i++) {
+        if (prompt_tokens[i] != test6_expected[i]) {
+            printf("something is wrong, expected prompt_tokens[%d] %d == %d\n", i, prompt_tokens[i], test6_expected[i]);
+//            exit(1);
+        }
+    }
+    printf("\n");
+
     return 0;
 }
 

@@ -118,6 +118,50 @@ int main(int argc, char *argv[]) {
     printf("\n");
     free(prompt_tokens);
 
+    /* test 4 */
+
+    prompt = "Zoo";
+
+    printf("prompt: %s\n", prompt);
+    printf("Allocating generate: prompt_tokens %zu bytes\n", (strlen(prompt)+3) * sizeof(int));
+    prompt_tokens = (int*)malloc((strlen(prompt)+3) * sizeof(int)); // +3 for '\0', ?BOS, ?EOS
+    int test4_expected[] = { 1, 410, 469, 347  };
+    int test4b_expected[] = { 1, 410, 451, 347  };
+    encode(&tokenizer, prompt, 1, 0, prompt_tokens, &num_prompt_tokens);
+    printf("prompt_tokens: %i\n", num_prompt_tokens);
+    if (num_prompt_tokens > 24) {
+        printf("something is wrong, expected 24 prompt tokens\n");
+    }
+    for (int i = 0; i < num_prompt_tokens; i++) {
+        printf("%i ", prompt_tokens[i]);
+    }
+    for (int i = 0; i < num_prompt_tokens; i++) {
+        if (prompt_tokens[i] != test4_expected[i]) {
+            printf("something is wrong, expected prompt_tokens[%i] == %i\n", i, test4_expected[i]);
+            exit(1);
+        }
+    }
+    printf("\n");
+
+    token = test4b_expected[0];
+    printf("test4: decode test4\n");
+    for (int i = 1; i < num_prompt_tokens; i++) {
+        next = test4b_expected[i];
+        piece = decode(&tokenizer, token, next);
+        safe_printf(piece); // same as printf("%s", piece), but skips "unsafe" bytes
+        token = next;
+    }
+    printf("\n");
+    printf("test4: decode generated test4\n");
+    for (int i = 1; i < num_prompt_tokens; i++) {
+        next = prompt_tokens[i];
+        piece = decode(&tokenizer, token, next);
+        safe_printf(piece); // same as printf("%s", piece), but skips "unsafe" bytes
+        token = next;
+    }
+    free(prompt_tokens);
+
+
     free_tokenizer(&tokenizer);
     return 0;
 }
