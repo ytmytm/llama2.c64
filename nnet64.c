@@ -163,28 +163,33 @@ void rope(uint8_t dim, RunState64 *s, uint8_t head_size, uint16_t pos, uint8_t k
     REUPtr veck = s->k; // the vector to rotate (query or key)
     float vi[2];
     float vo[2];
+    float val = pos;
+    // XXX this repets fcr/fci for each head, could be tabulated once
     for (uint8_t i = 0; i < dim; i += 2)
     {
-        int head_dim = i % head_size;
-//        printf("%d:HEAD_SIZE=%d,HEAD_DIM=%d\n",i,head_size,head_dim);
-        float val = pos * 1.0 / pow(10000.0, head_dim / (float)head_size);
-  //      float fcr = my_cos(val);
-  //      float fci = my_sin(val);
+        uint8_t head_dim = i % head_size;
+        if (head_dim==0) { val = pos; };
+        if (pos==2) printf("%d:HEAD_SIZE=%d,HEAD_DIM=%d\n",i,head_size,head_dim);
+//        float val = pos;
+//        val *= 1.0 / pow(10000.0, (float)head_dim / (float)head_size);
+        float fcr = my_cos(val);
+        float fci = my_sin(val);
   //      printf("%d:VAL=%f,FCR=%f,FCI=%f\n",i,val,fcr,fci);
   //      my_sincos(val, &fci, &fcr);
-  //      printf("%d:VAL=%f,FCR=%f,FCI=%f\n",i,val,fcr,fci);
-        float fcr, fci;
-        my_sincos(val, &fci, &fcr);
+//        float fcr, fci;
+//        my_sincos(val, &fci, &fcr);
+        if (pos==2) printf("%d:VAL=%f,FCR=%f,FCI=%f\n",i,val,fcr,fci);
         uint8_t rotn = i < kv_dim ? 2 : 1; // how many vectors? 2 = q & k, 1 = q only
         for (uint8_t v = 0; v < rotn; v++)
         {
             REUPtr vec = v == 0 ? vecq : veck; // the vector to rotate (query or key)
+//            vec += (uint32_t)i * sizeof(float);
             REU_getf(vec, &vi[0], 2 * sizeof(float));
-//            printf("%d:%d:%f-%f\t",i,v,vi[0],vi[1]);
+            if (pos==2) printf("%d:%d:%f-%f\t",i,v,vi[0],vi[1]);
             vo[0] = vi[0] * fcr - vi[1] * fci;
             vo[1] = vi[0] * fci + vi[1] * fcr;
             REU_putf(vec, &vo[0], 2 * sizeof(float));
-//            printf("%f-%f\n",vo[0],vo[1]);
+            if (pos==2) printf("%f-%f\n",vo[0],vo[1]);
             //                float* vec = v == 0 ? s->q : s->k; // the vector to rotate (query or key) // XXX64: all of these are remote
             //                float v0 = vec[i];
             //                float v1 = vec[i+1];
@@ -193,6 +198,7 @@ void rope(uint8_t dim, RunState64 *s, uint8_t head_size, uint16_t pos, uint8_t k
         }
         vecq += 2 * sizeof(float);
         veck += 2 * sizeof(float);
+        val /= 10.0;
     }
 }
 
@@ -216,7 +222,7 @@ void attn(Config64 *p, RunState64 *s, uint8_t head_size, uint16_t pos, uint32_t 
         {
             // get the key vector for this head and at this timestep
             REUPtr qq = q;
-            REUPtr k = s->key_cache + ((uint32_t)loff + t * kv_dim + (h / kv_mul) * head_size) * sizeof(float); // XXX64: key_cache is remote
+            REUPtr k = s->key_cache + ((uint32_t)loff + (uint32_t)t * kv_dim + (uint32_t)(h / kv_mul) * head_size) * sizeof(float); // XXX64: key_cache is remote
 //                float* k = s->key_cache + loff + t * kv_dim + (h / kv_mul) * head_size; // XXX64: key_cache is remote
             // calculate the attention score as the dot product of q and k
             float score = 0.0;
@@ -251,7 +257,7 @@ void attn(Config64 *p, RunState64 *s, uint8_t head_size, uint16_t pos, uint32_t 
         for (uint16_t t = 0; t <= pos; t++)
         {
             // get the value vector for this head and at this timestep
-            REUPtr v = s->value_cache + ((uint32_t)loff + t * kv_dim + (h / kv_mul) * head_size) * sizeof(float);
+            REUPtr v = s->value_cache + ((uint32_t)loff + (uint32_t)t * kv_dim + (uint32_t)(h / kv_mul) * head_size) * sizeof(float);
 //                float* v = s->value_cache + loff + t * kv_dim + (h / kv_mul) * head_size;
             // get the attention weight for this timestep
             float a;

@@ -71,6 +71,7 @@ inline void my_sinpolyeval(float g2, float g, float *r) {
         + 6.2831853069) * g;
 }
 
+// DON'T USE, WRONG OUTPUT FOR f=2.0
 void my_sincos(float f, float *s, float *c)
 {
     float g = fabs(f);
