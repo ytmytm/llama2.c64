@@ -41,7 +41,7 @@ test-generate:	test-generate.c tokenizer.c tokenizer.h sampler.c sampler.h nnet.
 	gcc $(CFLAGS) generate.c
 	gcc $(CFLAGS) test-generate.c
 	gcc test-generate.o tokenizer.o sampler.o nnet.o transformer.o util.o generate.o -o test-generate $(LDFLAGS)
-
+	./test-generate stories260K.bin -z tok512.bin -i "Zoo" -t 0 -n 10
 
 run:	run.c tokenizer.c tokenizer.h sampler.c sampler.h nnet.c nnet.h transformer.c transformer.h util.c util.h generate.c generate.h
 	gcc $(CFLAGS) transformer.c
