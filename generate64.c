@@ -17,35 +17,20 @@ void generate(Transformer *transformer, Tokenizer *tokenizer, Sampler *sampler, 
     // encode the (string) prompt into tokens sequence
     int16_t num_prompt_tokens = 0;
 
-    #ifdef DEBUG
-    printf("Allocating generate: prompt_tokens %u bytes\n", (strlen(prompt)+3) * sizeof(int16_t));
-    #endif
     int16_t* prompt_tokens = (int16_t*)malloc((strlen(prompt)+3) * sizeof(int16_t)); // +3 for '\0', ?BOS, ?EOS
     encode(tokenizer, prompt, 1, 0, prompt_tokens, &num_prompt_tokens);
     if (num_prompt_tokens < 1) {
-        #ifdef DEBUG
-        printf("something is wrong, expected at least 1 prompt token\n");
-        #endif
         exit(-1);
     }
-
-    printf("prompt_tokens: %u\n", num_prompt_tokens);
-    for (uint16_t i = 0; i < num_prompt_tokens; i++) {
-        printf("%d ", prompt_tokens[i]);
-    }
-    printf("\n");
 
     // start the main loop
     int16_t next;        // will store the next token in the sequence
     int16_t token = prompt_tokens[0]; // kick off with the first token in the prompt
     uint16_t pos = 0;     // position in the sequence
     while (pos < steps) {
-        if (pos==200) printf("pos=%d of %d token=%d\n",pos,steps,token);
 
         // forward the transformer to get logits for the next token
         float* logits = forward(transformer, token, pos);
-
-        if (pos==200) dump_matrix_local(logits,64,"LOGITS");
 
         // advance the state machine
         if (pos < num_prompt_tokens - 1) {

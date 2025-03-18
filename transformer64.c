@@ -53,65 +53,26 @@ void malloc_run_state(Transformer* t) {
     RunState64* s = &t->state;
     Config64* p = t->config;
 
-    #ifdef DEBUG
-    printf("Malloc\n");
-    printf("p->dim=%d\n", p->dim);
-    printf("p->n_heads=%d\n", p->n_heads);
-    #endif
-
     // we calloc instead of malloc to keep valgrind happy
     uint32_t kv_dim = (p->dim * p->n_kv_heads) / p->n_heads;
-    #ifdef DEBUG
-    printf("Allocating x: %u bytes\n", p->dim * sizeof(float));
-    #endif
     s->x = calloc(p->dim, sizeof(float));
-    #ifdef DEBUG
-    printf("Allocating xb: %u bytes\n", p->dim * sizeof(float));
-    #endif
     s->xb = calloc(p->dim, sizeof(float));
-    #ifdef DEBUG
-    printf("Allocating xb2: %u bytes\n", p->dim * sizeof(float));
-    #endif
     s->xb2 = calloc(p->dim, sizeof(float));
-    #ifdef DEBUG
-    printf("Allocating hb: %u bytes\n", p->hidden_dim * sizeof(float));
-    #endif
     s->hb = calloc(p->hidden_dim, sizeof(float));
-    #ifdef DEBUG
-    printf("Allocating hb2: %u bytes\n", p->hidden_dim * sizeof(float));
-    #endif
     s->hb2 = calloc(p->hidden_dim, sizeof(float));
-    #ifdef DEBUG
-    printf("Allocating q: %u bytes\n", p->dim * sizeof(float));
 //    s->q = calloc(p->dim, sizeof(float));
-    #endif
     s->q = reu_base;
     reu_base += p->dim * sizeof(float);
-    #ifdef DEBUG
-    printf("Allocating key_cache: %lu bytes [TOOBIG]\n", p->n_layers * p->seq_len * kv_dim * sizeof(float));
 //    s->key_cache = calloc(p->n_layers * p->seq_len * kv_dim, sizeof(float));
-    #endif
     s->key_cache = reu_base;
     reu_base += p->n_layers * p->seq_len * kv_dim * sizeof(float);
-    #ifdef DEBUG
-    printf("Allocating value_cache: %lu bytes [TOOBIG]\n", p->n_layers * p->seq_len * kv_dim * sizeof(float));
 //    s->value_cache = calloc(p->n_layers * p->seq_len * kv_dim, sizeof(float));
-    #endif
     s->value_cache = reu_base;
     reu_base += p->n_layers * p->seq_len * kv_dim * sizeof(float);
-    #ifdef DEBUG
-    printf("Allocating att: %u bytes [ALMOSTTOOBIG]\n", p->n_heads * p->seq_len * sizeof(float));
 //    s->att = calloc(p->n_heads * p->seq_len, sizeof(float));
-    #endif
     s->att = reu_base;
     reu_base += p->n_heads * p->seq_len * sizeof(float);
-    #ifdef DEBUG
-    printf("Allocating logits: %u bytes\n", p->vocab_size * sizeof(float));
-    #endif
     s->logits = calloc(p->vocab_size, sizeof(float));
-    #ifdef DEBUG
-    printf("Final reu_base=%lu\n", reu_base);
-    #endif
 }
 
 void memory_map_weights(Transformer* t) {
@@ -119,12 +80,6 @@ void memory_map_weights(Transformer* t) {
     Config64* p = t->config;
     uint16_t shared_weights = p->shared_weights;
     REUPtr ptr = reu_base;
-
-    #ifdef DEBUG
-    printf("mmap start ptr=%lu\n", ptr);
-    printf("p->dim=%d\n", p->dim);
-    printf("p->n_heads=%d\n", p->n_heads);
-    #endif
 
     uint32_t head_size = p->dim / p->n_heads;
     // make sure the multiplications below are done in 32 bit at least
@@ -134,9 +89,6 @@ void memory_map_weights(Transformer* t) {
     w->rms_att_weight = ptr;
     ptr += sizeof(float) * n_layers * p->dim;
     w->wq = ptr;
-    #ifdef DEBUG
-    printf("wq(1)=%lu\n", w->wq);
-    #endif
     ptr += sizeof(float) * n_layers * p->dim * (p->n_heads * head_size);
     w->wk = ptr;
     ptr += sizeof(float) * n_layers * p->dim * (p->n_kv_heads * head_size);
@@ -157,9 +109,6 @@ void memory_map_weights(Transformer* t) {
     ptr += sizeof(float) * p->seq_len * head_size / 2; // skip what used to be freq_cis_real (for RoPE)
     ptr += sizeof(float) * p->seq_len * head_size / 2; // skip what used to be freq_cis_imag (for RoPE)
     w->wcls = shared_weights ? w->token_embedding_table : ptr;
-    #ifdef DEBUG
-    printf("mmap end ptr=%lu\n", ptr);
-    #endif
     reu_base = ptr; // first free byte after weights (must match weights.bin length + initial offset)
 }
 
@@ -168,19 +117,7 @@ void load_transformer(Transformer *t) {
     t->config = (Config64*) config_bin;
     REU_init();
 
-//    REU_getf((uint32_t)0x20500, (float*)(0x0400), 1024);
-
     memory_map_weights(t);
     // allocate the RunState buffers
     malloc_run_state(t);
-
-    #ifdef DEBUG
-    volatile float f;
-    f = 0.0;
-    printf("wq(2)=%lu\n", t->weights.wq);
-    REU_getf(t->weights.wq+sizeof(float)*0, &f, sizeof(float));
-    printf("wq[0]=%f\n", f);
-    REU_getf(t->weights.wq+sizeof(float)*3, &f, sizeof(float));
-    printf("wq[3]=%f\n", f);
-    #endif
 }

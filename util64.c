@@ -1,12 +1,9 @@
 /* Inference for Llama-2 Transformer model in pure C */
 
 #include <stdio.h>
-#include <time.h>
 #include <ctype.h>
 
 // ----------------------------------------------------------------------------
-// utilities: time
-
 
 // needed for generate only
 void safe_printf(char *piece) {
