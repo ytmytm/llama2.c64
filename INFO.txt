@@ -12,7 +12,7 @@
 nnet64.c
 + rope() może policzyć fcr/fci raz i buforować (tylko [head_size] różnych wartości: połowa to sin(), połowa to cos(), indeksowane co 2)
 - wspólne offsety można wydzielić (są takie same dla key_cache i value_cache?)
-- buforowanie danych z REU (cały wiersz/kolumna)
++ buforowanie danych z REU (cały wiersz/kolumna)
 + potrzebuje przypadku testowego native (tak samo pierwsze 1-2 mnożenia)
 + nnet64 rmsnorm()
 + nnet64 softmax()

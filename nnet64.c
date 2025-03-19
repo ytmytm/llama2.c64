@@ -6,6 +6,25 @@
 #include "nnet64.h"
 
 // ----------------------------------------------------------------------------
+// cache
+
+float *wifbuf; // weight matrix buffer for matmul
+float *xobuf;  // general output buffer for matmul
+
+void nnet_init(Transformer* transformer) {
+    Config64* p = transformer->config;
+    uint8_t maxdim = p->hidden_dim;
+    uint8_t dim = p->dim; // 64?
+
+    // just in case
+    if (p->dim > maxdim) { maxdim = p->dim; }
+    if (((p->dim * p->n_kv_heads) / p->n_heads) > maxdim) { maxdim = (p->dim * p->n_kv_heads) / p->n_heads; }
+
+    wifbuf = (float*)malloc(maxdim*sizeof(float));
+    xobuf = (float*)malloc(dim*sizeof(float));
+}
+
+// ----------------------------------------------------------------------------
 // neural net blocks; the dynamics of the Transformer
 
 void rmsnorm(float* o, float* x, REUPtr weight, uint8_t size) {
@@ -68,66 +87,68 @@ void softmax(REUPtr x, uint16_t size) {
 void matmul(REUPtr xout, float* x, REUPtr w, uint8_t n, uint8_t d) {
     // W (d,n) @ x (n,) -> xout (d,)
     // by far the most amount of time is spent inside this little function
-    REUPtr xo = xout;
-    float xof;
-    REUPtr wi = w;
-    float wif;
+    float *xof = xobuf;
+    float *wif;
     float *xi;
     for (uint8_t i = 0; i < d; i++) {
-        xof = 0.0;
+        (*xof) = 0.0;
         xi = x;
+        REU_getf(w, wifbuf, n*sizeof(float));
+        w += n*sizeof(float);
+        wif = wifbuf;
         for (uint8_t j = 0; j < n; j++) {
-            REU_getf(wi, &wif, sizeof(float)); // XXX: can be faster if whole row is read once
-            xof += wif * (*xi);
-            wi += sizeof(float);
+            (*xof) += (*wif) * (*xi);
+            wif++;
             xi++;
         }
-        REU_putf(xo, &xof, sizeof(float)); // XXX: can be faster if whole row is written once
-        xo += sizeof(float);
+        xof++;
     }
+    REU_putf(xout, xobuf, d*sizeof(float));
 }
 
-// xout is local, x is local, w is remote, n/d are always dim
+// xout is local, x is local, w is remote, n/d are always dim/hidden_dim
 void matmul_l(float* xout, float* x, REUPtr w, uint8_t n, uint8_t d) {
     // W (d,n) @ x (n,) -> xout (d,)
     // by far the most amount of time is spent inside this little function
     float *xo = xout;
-    REUPtr wi = w;
-    float wif;
+    float *wif;
     float *xi;
     for (uint8_t i = 0; i < d; i++) {
-        *xo = 0.0;
+        (*xo) = 0.0;
         xi = x;
+        REU_getf(w, wifbuf, n*sizeof(float));
+        w += n*sizeof(float);
+        wif = wifbuf;
         for (uint8_t j = 0; j < n; j++) {
-            REU_getf(wi, &wif, sizeof(float)); // XXX: can be faster if whole row is read once
-            *xo += wif * (*xi);
-            wi += sizeof(float);
+            (*xo) += (*wif) * (*xi);
+            wif++;
             xi++;
         }
         xo++;
     }
 }
 
-// xout is local, x is local, w is remote, n/d are always dim
+// xout is local, x is local, w is remote, n/d are always dim/vocab_size
 void matmul_ll(float* xout, float* x, REUPtr w, uint8_t n, uint16_t d) {
-        // W (d,n) @ x (n,) -> xout (d,)
-        // by far the most amount of time is spent inside this little function
-        float *xo = xout;
-        REUPtr wi = w;
-        float wif;
-        float *xi;
-        for (uint16_t i = 0; i < d; i++) {
-            *xo = 0.0;
-            xi = x;
-            for (uint8_t j = 0; j < n; j++) {
-                REU_getf(wi, &wif, sizeof(float)); // XXX: can be faster if whole row is read once
-                *xo += wif * (*xi);
-                wi += sizeof(float);
-                xi++;
-            }
-            xo++;
+    // W (d,n) @ x (n,) -> xout (d,)
+    // by far the most amount of time is spent inside this little function
+    float *xo = xout;
+    float *wif;
+    float *xi;
+    for (uint16_t i = 0; i < d; i++) {
+        (*xo) = 0.0;
+        xi = x;
+        REU_getf(w, wifbuf, n*sizeof(float));
+        w += n*sizeof(float);
+        wif = wifbuf;
+        for (uint8_t j = 0; j < n; j++) {
+            (*xo) += (*wif) * (*xi);
+            wif++;
+            xi++;
         }
+        xo++;
     }
+}
     
 void rope(uint8_t dim, RunState64 *s, uint8_t head_size, uint16_t pos, uint8_t kv_dim)
 {

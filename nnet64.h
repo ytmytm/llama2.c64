@@ -8,6 +8,9 @@
 // ----------------------------------------------------------------------------
 // neural net blocks; the dynamics of the Transformer
 
+// init
+void nnet_init(Transformer* transformer);
+
 // sampler
 void softmax(REUPtr x, uint16_t size);
 

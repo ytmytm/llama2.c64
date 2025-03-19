@@ -23,6 +23,9 @@ void generate(Transformer *transformer, Tokenizer *tokenizer, Sampler *sampler, 
         exit(-1);
     }
 
+    // prepare nnet buffers
+    nnet_init(transformer);
+
     // start the main loop
     int16_t next;        // will store the next token in the sequence
     int16_t token = prompt_tokens[0]; // kick off with the first token in the prompt
