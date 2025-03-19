@@ -73,6 +73,8 @@ void malloc_run_state(Transformer* t) {
     s->att = reu_base;
     reu_base += p->n_heads * p->seq_len * sizeof(float);
     s->logits = calloc(p->vocab_size, sizeof(float));
+    // cache for sin/cos used in rope()
+    s->fcir = calloc(p->dim / p->n_heads, sizeof(float));
 }
 
 void memory_map_weights(Transformer* t) {

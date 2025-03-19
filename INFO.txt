@@ -7,10 +7,10 @@
 - tokenizer2.bin zapisany z run.c
 - tokenizer2.bin wciągany binarnie w tokenizer64.c
 
--
+- token 0x0a to \n
 
 nnet64.c
-- rope() może policzyć fcr/fci raz i buforować (tylko [head_size] różnych wartości: połowa to sin(), połowa to cos(), indeksowane co 2)
++ rope() może policzyć fcr/fci raz i buforować (tylko [head_size] różnych wartości: połowa to sin(), połowa to cos(), indeksowane co 2)
 - wspólne offsety można wydzielić (są takie same dla key_cache i value_cache?)
 - buforowanie danych z REU (cały wiersz/kolumna)
 + potrzebuje przypadku testowego native (tak samo pierwsze 1-2 mnożenia)

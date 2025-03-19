@@ -51,6 +51,7 @@ typedef struct {
     float *xb2; // an additional buffer just for convenience (dim,)
     float *hb; // buffer for hidden dimension in the ffn (hidden_dim,)
     float *hb2; // buffer for hidden dimension in the ffn (hidden_dim,)
+    float *fcir; // buffer for sin/cos used in rope (dim/n_heads,)
     REUPtr q; // query (dim,) in REU for single matmul function
     REUPtr k; // key (dim,) points into key_cache
     REUPtr v; // value (dim,) points into value_cache

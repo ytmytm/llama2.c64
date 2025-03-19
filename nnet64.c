@@ -131,19 +131,30 @@ void matmul_ll(float* xout, float* x, REUPtr w, uint8_t n, uint16_t d) {
     
 void rope(uint8_t dim, RunState64 *s, uint8_t head_size, uint16_t pos, uint8_t kv_dim)
 {
+    static uint16_t last_pos = -1;
     // RoPE relative positional encoding: complex-valued rotate q and k in each head
     REUPtr vecq = s->q; // the vector to rotate (query or key)
     REUPtr veck = s->k; // the vector to rotate (query or key)
     float vi[2];
     float vo[2];
     float val = pos;
-    // XXX this repets fcr/fci for each head, could be tabulated once
+    float *fcir_table = s->fcir; // cache space
+
+    if (last_pos != pos) {
+        last_pos = pos;
+        // cache the sin/cos values for the relative positional encoding
+        for (uint8_t h = 0; h < head_size; h+=2) {
+            fcir_table[h] = my_cos(val);
+            fcir_table[h+1] = my_sin(val);
+            val /= 10.0;
+        }
+    }
+
+    uint8_t table_idx = 0;
     for (uint8_t i = 0; i < dim; i += 2)
     {
-        uint8_t head_dim = i % head_size;
-        if (head_dim==0) { val = pos; };
-        float fcr = my_cos(val);
-        float fci = my_sin(val);
+        float fcr = fcir_table[table_idx];
+        float fci = fcir_table[table_idx + 1];
         uint8_t rotn = i < kv_dim ? 2 : 1; // how many vectors? 2 = q & k, 1 = q only
         for (uint8_t v = 0; v < rotn; v++)
         {
@@ -155,7 +166,8 @@ void rope(uint8_t dim, RunState64 *s, uint8_t head_size, uint16_t pos, uint8_t k
         }
         vecq += 2 * sizeof(float);
         veck += 2 * sizeof(float);
-        val /= 10.0;
+        table_idx += 2;
+        if (table_idx == head_size) { table_idx = 0; }
     }
 }
 
