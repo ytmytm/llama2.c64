@@ -3,6 +3,7 @@
 Optimized rope(), sin/cos values are calculated only once for each pos, so the calculation don't repeat for every layer/head. Worth maybe 24s of real time per token :)
 Optimized rmsnorm(), matrix multiplications to have only one REU_getf/putf for whole row(column), no visible change.
 One token every 37s (7m24 realtime). Feeling of on-premise 50B model :)
+drmortalwombat already fixed the issue #207 with Oscar floats! That's awesome support.
 
 [20250318]
 Fixed rope() and now results with temp=1.0 exactly (up to 5 decimals) match x86 calculations.
