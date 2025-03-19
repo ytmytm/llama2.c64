@@ -28,21 +28,26 @@ void nnet_init(Transformer* transformer) {
 // neural net blocks; the dynamics of the Transformer
 
 void rmsnorm(float* o, float* x, REUPtr weight, uint8_t size) {
-    float wif;
-    REUPtr wi = weight;
+    float *wif = xobuf;
+    float *xi = x;
+    float *oi = o;
     // calculate sum of squares
     float ss = 0.0;
     for (uint8_t j = 0; j < size; j++) {
-        ss += x[j] * x[j];
+        ss += (*xi)*(*xi);
+        xi++;
     }
     ss /= size;
     ss += 0.00001;
     ss = 1.0 / sqrt(ss);
     // normalize and scale
+    REU_getf(weight, xobuf, size*sizeof(float));
+    xi = x;
     for (uint8_t j = 0; j < size; j++) {
-        REU_getf(wi, &wif, sizeof(float)); // XXX: can be faster if whole row is read once into weights[size] then use weights[j] instead of wif
-        wi += sizeof(float);
-        o[j] = wif * (ss * x[j]);
+        (*oi) = (*wif) * ss * (*xi);
+        oi++;
+        wif++;
+        xi++;
     }
 }
 

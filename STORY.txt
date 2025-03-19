@@ -1,7 +1,7 @@
 
 [20250319]
 Optimized rope(), sin/cos values are calculated only once for each pos, so the calculation don't repeat for every layer/head. Worth maybe 24s of real time per token :)
-Optimized matrix multiplications to have only one REU_getf/putf for whole row(column), no visible change.
+Optimized rmsnorm(), matrix multiplications to have only one REU_getf/putf for whole row(column), no visible change.
 One token every 37s (7m24 realtime). Feeling of on-premise 50B model :)
 
 [20250318]
