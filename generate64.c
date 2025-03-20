@@ -15,13 +15,20 @@ void generate(Transformer *transformer, Tokenizer *tokenizer, Sampler *sampler, 
     if (prompt == NULL) { prompt = empty_prompt; }
 
     // encode the (string) prompt into tokens sequence
-    int16_t num_prompt_tokens = 0;
+    uint16_t num_prompt_tokens = 0;
+
+    ui_settopstatus("TOKENIZING...");
 
     int16_t* prompt_tokens = (int16_t*)malloc((strlen(prompt)+3) * sizeof(int16_t)); // +3 for '\0', ?BOS, ?EOS
     encode(tokenizer, prompt, 1, 0, prompt_tokens, &num_prompt_tokens);
     if (num_prompt_tokens < 1) {
-        exit(-1);
+        ui_settopstatus("ERROR: NOT TOKENS");
+        while (1);
     }
+    ui_cleartopstatus();
+    ui_setnumberoftokens(num_prompt_tokens);
+
+    ui_gotooutput();
 
     // prepare nnet buffers
     nnet_init(transformer);
@@ -32,6 +39,8 @@ void generate(Transformer *transformer, Tokenizer *tokenizer, Sampler *sampler, 
     uint16_t pos = 0;     // position in the sequence
     while (pos < steps) {
 
+        ui_setcurrenttoken(pos,steps);
+
         // forward the transformer to get logits for the next token
         float* logits = forward(transformer, token, pos);
 
@@ -41,6 +50,7 @@ void generate(Transformer *transformer, Tokenizer *tokenizer, Sampler *sampler, 
             next = prompt_tokens[pos + 1];
         } else {
             // otherwise sample the next token from the logits
+            ui_settopstatus("sampling");
             next = sample(sampler, logits);
         }
         pos++;
@@ -50,9 +60,7 @@ void generate(Transformer *transformer, Tokenizer *tokenizer, Sampler *sampler, 
 
         // print the token as string, decode it with the Tokenizer object
         char* piece = decode(tokenizer, token, next);
-        printf("\x05"); // white
-        safe_printf(piece); // same as printf("%s", piece), but skips "unsafe" bytes
-        printf("\x9a"); // light blue
+        safe_printf(piece);
         token = next;
 
     }

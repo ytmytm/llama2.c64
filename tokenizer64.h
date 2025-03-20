@@ -21,10 +21,10 @@ typedef struct {
     char *str_buffer;               // temp buffer for encode (this can be static)
 } Tokenizer;
 
-void load_tokenizer(Tokenizer* t, const char* load_path);
+void load_tokenizer(Tokenizer* t);
 
 // generate.c
-void encode(Tokenizer* t, char *text, int8_t bos, int8_t eos, int16_t *tokens, int16_t *n_tokens);
+void encode(Tokenizer* t, char *text, int8_t bos, int8_t eos, int16_t *tokens, uint16_t *n_tokens);
 char* decode(Tokenizer* t, int16_t prev_token, int16_t token);
 
 #endif // TOKENIZER_H

@@ -1,3 +1,8 @@
+[20250320]
+Simple text UI for prompt input and inference screen. Need also a welcome screen with name & title, model parameters (layers, heads, dims, vocab) info
+and input settings: temperature (0.0-1.0 by 0.1 with +/- keys) and number of output tokens.
+What should be the color scheme? Should the status go to the bottom?
+Need correct ASCII<->PETSCII translation on both input (from prompt) and output (from decoded token). 'Zoo' should be 4 tokens, not 5. 'ZOO' is 5.
 
 [20250319]
 Optimized rope(), sin/cos values are calculated only once for each pos, so the calculation don't repeat for every layer/head. Worth maybe 24s of real time per token :)

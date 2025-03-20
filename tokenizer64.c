@@ -56,7 +56,7 @@ int16_t str_lookup(char *str, Tokenizer *t) {
 // ----------------------------------------------------------------------------
 // The Byte Pair Encoding (BPE) Tokenizer that translates strings <-> tokens
 
-void load_tokenizer(Tokenizer* t, const char* load_path) {
+void load_tokenizer(Tokenizer* t) {
 
     t->mmap_size = sizeof(tokenizer_bin);
     t->mmap_ptr = (char*)tokenizer_bin;
@@ -99,19 +99,19 @@ void load_tokenizer(Tokenizer* t, const char* load_path) {
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
 char* decode(Tokenizer* t, int16_t prev_token, int16_t token) {
-    char *piece = t->vocab[token]; // XXX copy that string from REU into buffer
+    char *piece = t->vocab[token];
     // following BOS (1) token, sentencepiece decoder strips any leading whitespace (see PR #89)
     if (prev_token == 1 && piece[0] == ' ') { piece++; }
     // careful, some tokens designate raw bytes, and look like e.g. '<0x01>'
     // parse this and convert and return the actual byte
     unsigned char byte_val;
-    if (sscanf(piece, "<0x%02hhX>", &byte_val) == 1) {
+    if (sscanf(piece, "<0x%02hhX>", &byte_val) == 1) {  // XXX test that, didn't work for <0x0a>
         piece = (char*)t->byte_pieces + byte_val * 2;
     }
     return piece;
 }
 
-void encode(Tokenizer* t, char *text, int8_t bos, int8_t eos, int16_t *tokens, int16_t *n_tokens) {
+void encode(Tokenizer* t, char *text, int8_t bos, int8_t eos, int16_t *tokens, uint16_t *n_tokens) {
     // encode the string text (input) into an upper-bound preallocated tokens[] array
     // bos != 0 means prepend the BOS token (=1), eos != 0 means append the EOS token (=2)
     if (text == NULL) { 

@@ -257,6 +257,8 @@ void attn(Config64 *p, RunState64 *s, uint8_t head_size, uint16_t pos, uint32_t 
     }
 }
 
+char ui_statusbuf[40];
+
 // assumption: n_heads, dim, hidden_dim are <256
 float* forward(Transformer* transformer, uint16_t token, uint16_t pos) {
 
@@ -281,6 +283,8 @@ float* forward(Transformer* transformer, uint16_t token, uint16_t pos) {
 
         // attention rmsnorm
         // XXX64: xb is local, x is local, weight is remote
+        sprintf(ui_statusbuf, "layer %d rmsnorm1 [%d]", l, dim);
+        ui_settopstatus(ui_statusbuf);
         rmsnorm(s->xb, x, w->rms_att_weight + ((uint32_t)l*dim)*sizeof(float), dim);
 
         // key and value point to the kv cache
@@ -289,15 +293,27 @@ float* forward(Transformer* transformer, uint16_t token, uint16_t pos) {
         s->v = s->value_cache + (loff + (uint32_t)pos * kv_dim)*sizeof(float);
 
         // qkv matmuls for this position
+        sprintf(ui_statusbuf, "layer %d matrix1 [%d*%d]", l, dim, dim);
+        ui_settopstatus(ui_statusbuf);
         matmul(s->q, s->xb, w->wq + ((uint32_t)l*dim*dim)*sizeof(float), dim, dim);
+        sprintf(ui_statusbuf, "layer %d matrix2 [%d*%d]", l, dim, kv_dim);
+        ui_settopstatus(ui_statusbuf);
         matmul(s->k, s->xb, w->wk + ((uint32_t)l*dim*kv_dim)*sizeof(float), dim, kv_dim);
+        sprintf(ui_statusbuf, "layer %d matrix3 [%d*%d]", l, dim, kv_dim);
+        ui_settopstatus(ui_statusbuf);
         matmul(s->v, s->xb, w->wv + ((uint32_t)l*dim*kv_dim)*sizeof(float), dim, kv_dim);
 
+        sprintf(ui_statusbuf, "layer %d rope [%d]", l, dim);
+        ui_settopstatus(ui_statusbuf);
         rope(dim, s, head_size, pos, kv_dim); // modifies s->q and s->k in place
 
+        sprintf(ui_statusbuf, "layer %d attention [%d]", l, kv_dim);
+        ui_settopstatus(ui_statusbuf);
         attn(p, s, head_size, pos, loff, kv_dim, kv_mul);
 
         // final matmul to get the output of the attention
+        sprintf(ui_statusbuf, "layer %d matrix4 [%d*%d]", l, dim, dim);
+        ui_settopstatus(ui_statusbuf);
         matmul_l(s->xb2, s->xb, w->wo + ((uint32_t)l*dim*dim)*sizeof(float), dim, dim);
 
         // residual connection back into x
@@ -307,14 +323,22 @@ float* forward(Transformer* transformer, uint16_t token, uint16_t pos) {
 
         // ffn rmsnorm
         // XXX64: xb is local, x is local, weight is remote
+        sprintf(ui_statusbuf, "layer %d rmsnorm2 [%d]", l, dim);
+        ui_settopstatus(ui_statusbuf);
         rmsnorm(s->xb, x, w->rms_ffn_weight + ((uint32_t)l*dim)*sizeof(float), dim);
 
         // Now for FFN in PyTorch we have: self.w2(F.silu(self.w1(x)) * self.w3(x))
         // first calculate self.w1(x) and self.w3(x)
+        sprintf(ui_statusbuf, "layer %d matrix6 [%d*%d]", l, dim, hidden_dim);
+        ui_settopstatus(ui_statusbuf);
         matmul_l(s->hb, s->xb, w->w1 + ((uint32_t)l*dim*hidden_dim)*sizeof(float), dim, hidden_dim);
+        sprintf(ui_statusbuf, "layer %d matrix7 [%d*%d]", l, dim, hidden_dim);
+        ui_settopstatus(ui_statusbuf);
         matmul_l(s->hb2, s->xb, w->w3 + ((uint32_t)l*dim*hidden_dim)*sizeof(float), dim, hidden_dim);
 
         // SwiGLU non-linearity
+        sprintf(ui_statusbuf, "layer %d swiglu [%d]", l, hidden_dim);
+        ui_settopstatus(ui_statusbuf);
         for (uint8_t i = 0; i < hidden_dim; i++) {
             float val = s->hb[i];
             // silu(x)=x*σ(x), where σ(x) is the logistic sigmoid
@@ -325,6 +349,8 @@ float* forward(Transformer* transformer, uint16_t token, uint16_t pos) {
         }
 
         // final matmul to get the output of the ffn
+        sprintf(ui_statusbuf, "layer %d matrix8 [%d*%d]", l, hidden_dim, dim);
+        ui_settopstatus(ui_statusbuf);
         matmul_l(s->xb, s->hb, w->w2 + ((uint32_t)l*dim*hidden_dim)*sizeof(float), hidden_dim, dim);
 
         // residual connection
@@ -335,9 +361,13 @@ float* forward(Transformer* transformer, uint16_t token, uint16_t pos) {
 
     // final rmsnorm
     // XXX64: x is local, x is local, weight is remote
+    sprintf(ui_statusbuf, "layer - rmsnorm3 [%d]", dim);
+    ui_settopstatus(ui_statusbuf);
     rmsnorm(x, x, w->rms_final_weight, dim);
 
     // classifier into logits
-    matmul_ll(s->logits, x, w->wcls, p->dim, p->vocab_size);
+    sprintf(ui_statusbuf, "layer - matrix9 [%d*%d]", dim, p->vocab_size);
+    ui_settopstatus(ui_statusbuf);
+    matmul_ll(s->logits, x, w->wcls, dim, p->vocab_size);
     return s->logits;
 }
