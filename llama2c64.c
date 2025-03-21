@@ -31,16 +31,6 @@ int main(void) {
 
     mmap_set(MMAP_NO_BASIC);
 
-    // default parameters
-    float temperature = 0.0;    // 0.0 = greedy deterministic. 1.0 = original. don't set higher
-    float topp = 0.9;           // top-p in nucleus sampling. 1.0 = off. 0.9 works well, but slower
-    int steps = 64;            // number of steps to run for
-
-    // parameter validation/overrides
-    if (temperature < 0.0) temperature = 0.0;
-    if (topp < 0.0 || 1.0 < topp) topp = 0.9;
-    if (steps < 0) steps = 0;
-
     // build the Tokenizer via the tokenizer .bin file
     Tokenizer tokenizer;
     load_tokenizer(&tokenizer);
@@ -54,9 +44,13 @@ int main(void) {
     RunState64* s = &transformer.state;
 
     Sampler sampler;
-    build_sampler(&sampler, c->vocab_size, temperature, topp, 123456);
+    build_sampler(&sampler, c->vocab_size, temperature, topp, 123456); // XXX take CIA timer as seed
 
     ui_init();
+
+    ui_startup_screen(c);
+
+    ui_inference_screen_init();
     char *prompt = malloc(256);
     ui_get_prompt(prompt);
 

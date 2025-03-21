@@ -70,21 +70,92 @@ char *txt_screen = (((char *)0x0400));
 
 void ui_init(void) {
 
-    iocharmap(IOCHM_PETSCII_2);
+}
 
-    clock_init();
+float temperature = 0.0;    // 0.0 = greedy deterministic. 1.0 = original. don't set higher
+float topp = 0.9;           // top-p in nucleus sampling. 1.0 = off. 0.9 works well, but slower
+int steps = 64;            // number of steps to run for
 
+void ui_render_temp(void) {
+
+    if (temperature < 0.0) temperature = 0.0;
+    if (temperature > 1.0) temperature = 1.0;
+
+    char x = wherex();
+    char y = wherey();
+    gotoxy(20,17);
+    textcolor(COLOR_WHITE);
+    printf("%3.1f", temperature);
+    gotoxy(x, y);
+}
+
+void ui_render_steps(void) {
+
+    if (steps < 10) steps = 10;
+
+    char x = wherex();
+    char y = wherey();
+    gotoxy(20,19);
+    textcolor(COLOR_WHITE);
+    printf("%d", steps);
+    int minutes = steps * 8;
+    int hours = minutes / 60;
+    minutes = minutes % 60;
+    gotoxy(20,21);
+    printf("%d:%02d", hours, minutes);
+    gotoxy(x, y);
+}
+
+void ui_startup_screen(Config64 *c) {
     clrscr();
+    iocharmap(IOCHM_PETSCII_1);
+    bgcolor(COLOR_BLACK);
+    bordercolor(COLOR_BLACK);
+    textcolor(COLOR_LT_GREY);
+    ui_quasi_frame(0, 3, "");
+    gotoxy(10,1); textcolor(COLOR_LT_BLUE); printf("llama2.c64");
+    gotoxy(10,2); textcolor(COLOR_LT_RED); printf("by ytm/elysium 2025");
+    textcolor(COLOR_LT_GREY);
+    ui_quasi_frame(4,14, "MODEL INFORMATION");
+    gotoxy(2,6); textcolor(COLOR_GREEN); printf("dimension:");
+    gotoxy(20,6); textcolor(COLOR_YELLOW); printf("%d", c->dim);
+    gotoxy(2,7); textcolor(COLOR_GREEN); printf("hidden dimension:");
+    gotoxy(20,7); textcolor(COLOR_YELLOW); printf("%d", c->hidden_dim);
+    gotoxy(2,8); textcolor(COLOR_GREEN); printf("layers:");
+    gotoxy(20,8); textcolor(COLOR_YELLOW); printf("%d", c->n_layers);
+    gotoxy(2,9); textcolor(COLOR_GREEN); printf("heads:");
+    gotoxy(20,9); textcolor(COLOR_YELLOW); printf("%d", c->n_heads);
+    gotoxy(2,10); textcolor(COLOR_GREEN); printf("k/v heads:");
+    gotoxy(20,10); textcolor(COLOR_YELLOW); printf("%d", c->n_kv_heads);
+    gotoxy(2,11); textcolor(COLOR_GREEN); printf("sequence len:");
+    gotoxy(20,11); textcolor(COLOR_YELLOW); printf("%d", c->seq_len);
+    gotoxy(2,12); textcolor(COLOR_GREEN); printf("vocabulary size:");
+    gotoxy(20,12); textcolor(COLOR_YELLOW); printf("%d", c->vocab_size);
+    textcolor(COLOR_LT_GREY);
+    ui_quasi_frame(15,23, "PARAMETERS");
+    textcolor(COLOR_GREEN);
+    gotoxy(2,17); printf("temperature:");
+    gotoxy(2,19); printf("output tokens:");
+    gotoxy(2,21); printf("estimated time:");
+    textcolor(COLOR_LT_GREY);
+    gotoxy(29,17); printf("+/-");
+    gotoxy(29,19); printf(",/. or </>");
+    textcolor(COLOR_RED);
+    gotoxy(2,24); printf("press <return> to start");
 
-    // full-length windows
-    cwin_init(&w_topstatus, txt_screen, 0, UI_STATUS_TOP, 40, 1);
-    cwin_init(&w_prompt,    txt_screen, 0, UI_PROMPT_TOP, 40, UI_PROMPT_HEIGHT);
-    cwin_init(&w_output,    txt_screen, 0, UI_OUTPUT_TOP, 40, UI_OUTPUT_HEIGHT);
-
-    ui_quasi_frame(UI_PROMPT_TOP-1, UI_PROMPT_TOP+UI_PROMPT_HEIGHT, "prompt");
-    ui_quasi_frame(UI_OUTPUT_TOP-1, UI_OUTPUT_TOP+UI_OUTPUT_HEIGHT, "output");
-    clock_display();
-
+    ui_render_steps();
+    ui_render_temp();
+    while (1) {
+        char c = getch();
+        if (c == ',') { steps--; ui_render_steps(); }
+        if (c == '.') { steps++; ui_render_steps(); }
+        if (c == '<') { steps-=10; ui_render_steps(); }
+        if (c == '>') { steps+=10; ui_render_steps(); }
+        if (c == '-') { temperature -= 0.1; ui_render_temp(); }
+        if (c == '+') { temperature += 0.1; ui_render_temp(); }
+        if (c == PETSCII_RETURN || c == 10 ) { break; }
+    }
+    textcolor(COLOR_LT_GREY); 
 }
 
 void ui_gotooutput(void) {
@@ -93,6 +164,17 @@ void ui_gotooutput(void) {
 }
 
 void ui_inference_screen_init(void) {
+
+    clrscr();
+    iocharmap(IOCHM_PETSCII_2);
+
+    // full-length windows
+    cwin_init(&w_topstatus, txt_screen, 0, UI_STATUS_TOP, 40, 1);
+    cwin_init(&w_prompt,    txt_screen, 0, UI_PROMPT_TOP, 40, UI_PROMPT_HEIGHT);
+    cwin_init(&w_output,    txt_screen, 0, UI_OUTPUT_TOP, 40, UI_OUTPUT_HEIGHT);
+
+    ui_quasi_frame(UI_PROMPT_TOP-1, UI_PROMPT_TOP+UI_PROMPT_HEIGHT, "prompt");
+    ui_quasi_frame(UI_OUTPUT_TOP-1, UI_OUTPUT_TOP+UI_OUTPUT_HEIGHT, "output");
 
 }
 
@@ -131,13 +213,17 @@ void ui_settopstatus(const char *msg) {
 
 char *ui_get_prompt(char *buffer) {
     char r = 0;
+
+    clock_init();
     ui_settopstatus("enter prompt, <return>");
 
-    while (r!=13) {
+    while (r!=PETSCII_RETURN) {
         cwin_clear(&w_prompt);
         r = cwin_edit(&w_prompt);
     }
     ui_settopstatus("");
+
+    clock_init();
 
     // XXX convert from PETSCII to ASCII!
     return cwin_read_string(&w_prompt, buffer);
