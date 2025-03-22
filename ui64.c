@@ -45,11 +45,14 @@ void clock_display(void) {
 void ui_quasi_frame(uint8_t top, uint8_t bot, const char* title) {
     char x = wherex();
     char y = wherey();
+    textcolor(COLOR_LT_GREY);
     gotoxy(0,top); putch(0xb0);
     for (uint8_t i=1; i<39; i++) putch(0x60);
     putch(0xae);
     gotoxy(2,top);
+    textcolor(COLOR_LT_GREEN);
     for (uint8_t i=0; i<strlen(title); i++) putrch(title[i]);
+    textcolor(COLOR_LT_GREY);
     gotoxy(0,bot); putch(0xad);
     for (uint8_t i=1; i<39; i++) putch(0x60);
     putch(0xbd);
@@ -74,7 +77,7 @@ void ui_init(void) {
 
 float temperature = 0.0;    // 0.0 = greedy deterministic. 1.0 = original. don't set higher
 float topp = 0.9;           // top-p in nucleus sampling. 1.0 = off. 0.9 works well, but slower
-int steps = 64;            // number of steps to run for
+int steps = 60;            // number of steps to run for
 
 void ui_render_temp(void) {
 
@@ -113,8 +116,8 @@ void ui_startup_screen(Config64 *c) {
     bordercolor(COLOR_BLACK);
     textcolor(COLOR_LT_GREY);
     ui_quasi_frame(0, 3, "");
-    gotoxy(10,1); textcolor(COLOR_LT_BLUE); printf("llama2.c64");
-    gotoxy(10,2); textcolor(COLOR_LT_RED); printf("by ytm/elysium 2025");
+    gotoxy(15,1); textcolor(COLOR_CYAN); printf("llama2.c64");
+    gotoxy(8,2); textcolor(COLOR_LT_BLUE); printf("c64 port by ytm/elysium");
     textcolor(COLOR_LT_GREY);
     ui_quasi_frame(4,14, "MODEL INFORMATION");
     gotoxy(2,6); textcolor(COLOR_GREEN); printf("dimension:");
@@ -138,10 +141,10 @@ void ui_startup_screen(Config64 *c) {
     gotoxy(2,19); printf("output tokens:");
     gotoxy(2,21); printf("estimated time:");
     textcolor(COLOR_LT_GREY);
-    gotoxy(29,17); printf("+/-");
-    gotoxy(29,19); printf(",/. or </>");
+    gotoxy(27,17); printf("(+/-)");
+    gotoxy(27,19); printf("(,/. or </>)");
     textcolor(COLOR_RED);
-    gotoxy(2,24); printf("press <return> to start");
+    gotoxy(8,24); printf("press <return> to start");
 
     ui_render_steps();
     ui_render_temp();
@@ -155,7 +158,6 @@ void ui_startup_screen(Config64 *c) {
         if (c == '+') { temperature += 0.1; ui_render_temp(); }
         if (c == PETSCII_RETURN || c == 10 ) { break; }
     }
-    textcolor(COLOR_LT_GREY); 
 }
 
 void ui_gotooutput(void) {
@@ -176,6 +178,10 @@ void ui_inference_screen_init(void) {
     ui_quasi_frame(UI_PROMPT_TOP-1, UI_PROMPT_TOP+UI_PROMPT_HEIGHT, "prompt");
     ui_quasi_frame(UI_OUTPUT_TOP-1, UI_OUTPUT_TOP+UI_OUTPUT_HEIGHT, "output");
 
+    textcolor(COLOR_PURPLE);
+    gotoxy(4, 24);
+    printf(p"Llama2.c64 by YTM/Elysium (2025)");
+    textcolor(COLOR_LT_GREY);
 }
 
 void ui_setcurrenttoken(uint16_t pos, uint16_t steps) {
@@ -215,17 +221,23 @@ char *ui_get_prompt(char *buffer) {
     char r = 0;
 
     clock_init();
-    ui_settopstatus("enter prompt, <return>");
+    cia2.todh = 0; // force clock to stop
 
-    while (r!=PETSCII_RETURN) {
-        cwin_clear(&w_prompt);
-        r = cwin_edit(&w_prompt);
+    ui_settopstatus("enter prompt, <return>");
+    while (1) {
+        while (r!=PETSCII_RETURN) {
+            cwin_clear(&w_prompt);
+            r = cwin_edit(&w_prompt);
+        }
+        cwin_read_string(&w_prompt, buffer);
+        if (strlen(buffer) > 0) break;
+        r = 0;
     }
+
     ui_settopstatus("");
 
-    clock_init();
+    clock_init(); // restart clock
 
-    // XXX convert from PETSCII to ASCII!
-    return cwin_read_string(&w_prompt, buffer);
+    return buffer;
 }
 

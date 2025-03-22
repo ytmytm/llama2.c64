@@ -19,6 +19,8 @@
 #include "util64.c"
 #include "generate64.c"
 
+#include <c64/cia.h>
+#include <c64/vic.h>
 #include <c64/memmap.h>
 #include <conio.h>
 
@@ -44,7 +46,6 @@ int main(void) {
     RunState64* s = &transformer.state;
 
     Sampler sampler;
-    build_sampler(&sampler, c->vocab_size, temperature, topp, 123456); // XXX take CIA timer as seed
 
     ui_init();
 
@@ -53,6 +54,10 @@ int main(void) {
     ui_inference_screen_init();
     char *prompt = malloc(256);
     ui_get_prompt(prompt);
+
+    uint32_t seed;
+    seed = cia1.ta << 16 | vic.raster | cia2.todt; 
+    build_sampler(&sampler, c->vocab_size, temperature, topp, seed);
 
     generate(&transformer, &tokenizer, &sampler, prompt, steps);
 

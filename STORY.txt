@@ -1,3 +1,7 @@
+[20250322]
+Some UI polish, initialize random number generator with seed value from CIA1 IRQ timer and VIC raster register read after user input,
+so essentially random.
+
 [20250321]
 Startup screen almost ready with model parameter display and parameter settings.
 Only top_p implementation is missing - need a sorting routine for that.
