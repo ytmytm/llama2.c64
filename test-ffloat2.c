@@ -33,21 +33,39 @@ typedef union {
     uint8_t bytes[4];
 } FloatBits;
 
-float multiply_float32_via_lut(float a, float b) {
-    if (isnan(a) || isnan(b)) return NAN;
-    if (isinf(a) || isinf(b)) return (a == 0.0f || b == 0.0f) ? NAN : copysignf(INFINITY, a * b);
-    if (a == 0.0f || b == 0.0f) return 0.0f;
-    if (a == 1.0f) return b;
-    if (b == 1.0f) return a;
+void multiply_float32_via_lut(const float* a, const float* b, float* out_result) {
+    if (isnan(*a) || isnan(*b)) {
+        *out_result = NAN;
+        return;
+    }
+    if (isinf(*a) || isinf(*b)) {
+        *out_result = (*a == 0.0f || *b == 0.0f) ? NAN : copysignf(INFINITY, *a * *b);
+        return;
+    }
+    if (*a == 0.0f || *b == 0.0f) {
+        *out_result = 0.0f;
+        return;
+    }
+    if (*a == 1.0f) {
+        *out_result = *b;
+        return;
+    }
+    if (*b == 1.0f) {
+        *out_result = *a;
+        return;
+    }
 
-    FloatBits ua = { .f = a }, ub = { .f = b };
+    FloatBits ua = { .f = *a }, ub = { .f = *b };
 
     uint8_t exp_a = ((ua.bytes[3] & 0x7F) << 1) | (ua.bytes[2] >> 7);
     uint8_t exp_b = ((ub.bytes[3] & 0x7F) << 1) | (ub.bytes[2] >> 7);
-    if (exp_a == 0 || exp_b == 0) return 0.0f;
+    if (exp_a == 0 || exp_b == 0) {
+        *out_result = 0.0f;
+        return;
+    }
     uint8_t result_exp = exp_a + exp_b - 127;
 
-    uint8_t result_sign = (ua.bytes[3] & 0x80) ^ (ub.bytes[3] & 0x80);
+    uint8_t result_sign = (ua.bytes[3] ^ ub.bytes[3]) & 0x80;
 
     ua.bytes[2] |= 0x80;
     ub.bytes[2] |= 0x80;
@@ -59,8 +77,8 @@ float multiply_float32_via_lut(float a, float b) {
         uint32_t u[2];  // Dwa 32-bitowe słowa
         uint8_t bytes[8]; // 8 bajtów
     } ResultBytes;
-    
-    ResultBytes result_bytes = {0}; // important to initialize to zero
+
+    ResultBytes result_bytes = {0};
     for (uint8_t i = 0; i < 3; ++i) {
         for (uint8_t j = 0; j < 3; ++j) {
             uint16_t partial = mult8_uint8_lut(A[i], B[j]);
@@ -82,21 +100,16 @@ float multiply_float32_via_lut(float a, float b) {
         }
     }
 
-    FloatBits result_frac;
-    result_frac.u = (result_bytes.u[1] << 9) | (result_bytes.u[0] >> 23);
+    FloatBits* result = (FloatBits*)out_result;
+    result->u = (result_bytes.u[1] << 9) | (result_bytes.u[0] >> 23);
 
-    if (result_frac.u & (1 << 24)) {
-        result_frac.u >>= 1;
+    if (result->u & (1 << 24)) {
+        result->u >>= 1;
         result_exp++;
     }
 
-    FloatBits result;
-    result.bytes[0] = result_frac.bytes[0];
-    result.bytes[1] = result_frac.bytes[1];
-    result.bytes[2] = (result_frac.bytes[2] & 0x7F) | ((result_exp & 1) << 7);
-    result.bytes[3] = (result_sign << 7) | ((result_exp >> 1) & 0x7F);
-
-    return result.f;
+    result->bytes[2] = (result->bytes[2] & 0x7F) | ((result_exp & 1) << 7);
+    result->bytes[3] = (result_sign) | ((result_exp >> 1) & 0x7F);
 }
 
 int significant_digit_difference(float a, float b) {
@@ -136,8 +149,9 @@ int main(void) {
     printf("\nFixed test cases:\n");
     for (size_t i = 0; i < sizeof(tests)/sizeof(tests[0]); ++i) {
         float a = tests[i].a, b = tests[i].b;
-        float res = multiply_float32_via_lut(a, b);
+        float res;
         float expected = a * b;
+        multiply_float32_via_lut(&a, &b, &res);
         uint32_t mantissa_diff = significant_digit_difference(res, expected);
 
         printf("% .8e * % .8e = % .8e (expected % .8e, mantissa Δ = %6u)%s\n",
@@ -148,8 +162,9 @@ int main(void) {
     for (int i = 0; i < RANDOM_TESTS; ++i) {
         float a = (float)rand() / (float)(RAND_MAX / 1e4f) - 5e3f;
         float b = (float)rand() / (float)(RAND_MAX / 1e4f) - 5e3f;
-        float res = multiply_float32_via_lut(a, b);
+        float res;
         float expected = a * b;
+        multiply_float32_via_lut(&a, &b, &res);
         uint32_t mantissa_diff = significant_digit_difference(res, expected);
 
         printf("% .8e * % .8e = % .8e (expected % .8e, mantissa Δ = %6u)%s\n",
