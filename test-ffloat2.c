@@ -101,9 +101,13 @@ void multiply_float32_via_lut(const float* a, const float* b, float* out_result)
     }
 
     FloatBits* result = (FloatBits*)out_result;
-    result->u = (result_bytes.u[1] << 9) | (result_bytes.u[0] >> 23);
 
-    if (result->u & (1 << 24)) {
+    result->bytes[0] = (result_bytes.bytes[2] >> 7) | (result_bytes.bytes[3] << 1);
+    result->bytes[1] = (result_bytes.bytes[3] >> 7) | (result_bytes.bytes[4] << 1);
+    result->bytes[2] = (result_bytes.bytes[4] >> 7) | (result_bytes.bytes[5] << 1);
+    result->bytes[3] = (result_bytes.bytes[5] >> 7) | (result_bytes.bytes[6] << 1);
+
+    if (result->bytes[3] & 0x01) {
         result->u >>= 1;
         result_exp++;
     }
