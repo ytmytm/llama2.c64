@@ -36,14 +36,32 @@ uint16_t sample_mult(float* probabilities, uint16_t n, float coin) {
     return n - 1; // in case of rounding errors
 }
 
-/* XXX NOT IMPLEMENTED */
-/*
-int compare(const void* a, const void* b) {
-    ProbIndex* a_ = (ProbIndex*) a;
-    ProbIndex* b_ = (ProbIndex*) b;
-    if (a_->prob > b_->prob) return -1;
-    if (a_->prob < b_->prob) return 1;
-    return 0;
+/* XXX NOT TESTED YET
+void quicksort(ProbIndex* arr, uint16_t left, uint16_t right) {
+    uint16_t i = left, j = right;
+    ProbIndex tmp;
+    ProbIndex pivot = arr[(left + right) / 2];
+
+    // partition
+    while (i <= j) {
+        while (arr[i].prob > pivot.prob)
+            i++;
+        while (arr[j].prob < pivot.prob)
+            j--;
+        if (i <= j) {
+            tmp = arr[i]; // XXX does this work for structs?
+            arr[i] = arr[j];
+            arr[j] = tmp;
+            i++;
+            j--;
+        }
+    };
+
+    // recursion
+    if (left < j)
+        quicksort(arr, left, j);
+    if (i < right)
+        quicksort(arr, i, right);
 }
 
 int sample_topp(float* probabilities, int n, float topp, ProbIndex* probindex, float coin) {
@@ -52,24 +70,24 @@ int sample_topp(float* probabilities, int n, float topp, ProbIndex* probindex, f
     // have very low probabilities and are less likely to go "off the rails".
     // coin is a random number in [0, 1), usually from random_f32()
 
-    int n0 = 0;
+    uint16_t n0 = 0;
     // quicksort indices in descending order of probabilities
     // values smaller than (1 - topp) / (n - 1) cannot be part of the result
     // so for efficiency we crop these out as candidates before sorting
-    const float cutoff = (1.0f - topp) / (n - 1);
-    for (int i = 0; i < n; i++) {
+    const float cutoff = (1.0 - topp) / (n - 1);
+    for (uint16_t i = 0; i < n; i++) {
         if (probabilities[i] >= cutoff) {
             probindex[n0].index = i;
             probindex[n0].prob = probabilities[i];
             n0++;
         }
     }
-    qsort(probindex, n0, sizeof(ProbIndex), compare);
+    quicksort(probindex, 0, n0 - 1);
 
     // truncate the list where cumulative probability exceeds topp
-    float cumulative_prob = 0.0f;
-    int last_idx = n0 - 1; // in case of rounding errors consider all elements
-    for (int i = 0; i < n0; i++) {
+    float cumulative_prob = 0.0;
+    uint16_t last_idx = n0 - 1; // in case of rounding errors consider all elements
+    for (uint16_t i = 0; i < n0; i++) {
         cumulative_prob += probindex[i].prob;
         if (cumulative_prob > topp) {
             last_idx = i;
@@ -79,8 +97,8 @@ int sample_topp(float* probabilities, int n, float topp, ProbIndex* probindex, f
 
     // sample from the truncated list
     float r = coin * cumulative_prob;
-    float cdf = 0.0f;
-    for (int i = 0; i <= last_idx; i++) {
+    float cdf = 0.0;
+    for (uint16_t i = 0; i <= last_idx; i++) {
         cdf += probindex[i].prob;
         if (r < cdf) {
             return probindex[i].index;
