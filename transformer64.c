@@ -120,9 +120,10 @@ void load_transformer(Transformer *t) {
     REU_init();
 
     // build the LUT for uint8 multiplication; must be at REU_Base=0
-    printf(p"Generating LUT...\n");
+    printf(p"generating lut...\n");
+    reu_base = LUT_OFFSET; // put at the end of 2MB REU
     build_lut_uint8();
-    reu_base += 0x10000; // skip the LUT
+    reu_base = 0; // back to the beginning where weights will be loaded
 
     memory_map_weights(t);
     // allocate the RunState buffers

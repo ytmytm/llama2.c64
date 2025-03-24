@@ -86,7 +86,7 @@ float my_exp(float f)
 //// 
 
 static inline REUPtr index_uint8(uint8_t a, uint8_t b) {
-    return (((uint32_t)a << 8) | b) << 1;
+    return (uint32_t)LUT_OFFSET+(((uint32_t)a << 8) | b) << 1;
 }
 
 void build_lut_uint8(void) {

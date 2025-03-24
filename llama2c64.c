@@ -4,6 +4,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define LUT_OFFSET (0x1F0000)
+
 #include "tokenizer64.h"
 #include "transformer64.h"
 #include "nnet64.h"
