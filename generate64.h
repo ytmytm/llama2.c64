@@ -1,5 +1,7 @@
 /* Inference for Llama-2 Transformer model in pure C */
 
+// C64 port by Maciej 'YTM/Elysium' Witkowiak, 2025
+
 #ifndef GENERATE_H
 #define GENERATE_H
 

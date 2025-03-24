@@ -1,4 +1,7 @@
 // https://raw.githubusercontent.com/drmortalwombat/oscar64/refs/heads/main/include/math.c
+
+// C64 port by Maciej 'YTM/Elysium' Witkowiak, 2025
+
 // SIN method from https://www.c64-wiki.com/wiki/SIN with optimization for small angles
 // EXP method from https://www.c64-wiki.com/wiki/EXP
 // general info in https://www.c64-wiki.com/wiki/POLY1

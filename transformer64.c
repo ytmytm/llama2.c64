@@ -1,5 +1,7 @@
 /* Inference for Llama-2 Transformer model in pure C */
 
+// C64 port by Maciej 'YTM/Elysium' Witkowiak, 2025
+
 #include "transformer64.h"
 
 REUPtr reu_base = (REUPtr)0; // base address of weights.bin inside REU

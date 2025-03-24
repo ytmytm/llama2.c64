@@ -1,10 +1,10 @@
 /* Inference for Llama-2 Transformer model in pure C */
 
+// C64 port by Maciej 'YTM/Elysium' Witkowiak, 2025
+
 #include <math.h>
 
 #include "sampler64.h"
-
-void dump_matrix_local(float* xout, int d, const char* name);
 
 // ----------------------------------------------------------------------------
 // The Sampler, which takes logits and returns a sampled token

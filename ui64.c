@@ -1,5 +1,7 @@
 /* Text UI for C64 */
 
+// Maciej 'YTM/Elysium' Witkowiak, 2025
+
 #include <stdio.h>
 
 #include <c64/cia.h>
