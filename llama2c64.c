@@ -47,24 +47,28 @@ int main(void) {
 
     Sampler sampler;
 
-    ui_init();
-
-    ui_startup_screen(c);
-
-    ui_inference_screen_init();
     char *prompt = malloc(256);
-    ui_get_prompt(prompt);
+    while (1) {
 
-    uint32_t seed;
-    seed = cia1.ta << 16 | vic.raster | cia2.todt; 
-    build_sampler(&sampler, c->vocab_size, temperature, topp, seed);
+        ui_init();
 
-    generate(&transformer, &tokenizer, &sampler, prompt, steps);
+        ui_startup_screen(c);
 
-    while (true) {
+        ui_inference_screen_init();
+        ui_get_prompt(prompt);
 
+        char *jiffyclock = (char *)0xA2;    
+        volatile uint32_t seed;
+        seed = cia1.ta << 16 | vic.raster << 8 | (*jiffyclock);
+        build_sampler(&sampler, c->vocab_size, temperature, topp, seed);
+
+        generate(&transformer, &tokenizer, &sampler, prompt, steps);
+
+        ui_settopstatus("again? (y/n)");
+        if (getche() != 'y') {
+            exit(0);
+        }
     }
 
-    return 0;
 }
 

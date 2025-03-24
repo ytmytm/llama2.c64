@@ -1,6 +1,12 @@
 [20250324]
-On (abandoned) branch feature-fastmult there is not-so fast float32 multiplication based on a tabulated uint8_t*uint8_t times tabulated
-(64KB). Makes token generation 2x slower though. It may come back if/when we try to add quantized weights.
+On (abandoned) branch feature-fastmult there is a not-so fast float32 multiplication based on uint8_t*uint8_t times table (64KB).
+Makes token generation 2x slower though. It may come back if/when we try to add quantized weights.
+Correct input/output ASCII/PETSCII conversion to get exact result for input 'Zoo' (4 tokens) and exactly the same output with
+temp=0: 
+[Zoo was a little girl named Lily. She loved to play outside in the park. One day, she saw a big, red ball. She wanted to play with it, but she didn't want to play with]
+
+[20250323]
+Branch feature-fastmult has a uint8_t*uint8_t times table, to be put into REU (64K).
 
 [20250322]
 Some UI polish, initialize random number generator with seed value from CIA1 IRQ timer and VIC raster register read after user input,

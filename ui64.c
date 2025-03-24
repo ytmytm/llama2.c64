@@ -62,6 +62,7 @@ void ui_quasi_frame(uint8_t top, uint8_t bot, const char* title) {
 CharWin w_topstatus;
 CharWin w_prompt;
 CharWin w_output;
+CharWin w_bottom;
 
 char *txt_screen = (((char *)0x0400));
 
@@ -70,6 +71,8 @@ char *txt_screen = (((char *)0x0400));
 #define UI_PROMPT_HEIGHT 5
 #define UI_OUTPUT_TOP (UI_PROMPT_TOP+UI_PROMPT_HEIGHT+2)
 #define UI_OUTPUT_HEIGHT 12
+#define UI_BOTTOM_TOP 23
+#define UI_BOTTOM_HEIGHT 1
 
 void ui_init(void) {
 
@@ -174,6 +177,7 @@ void ui_inference_screen_init(void) {
     cwin_init(&w_topstatus, txt_screen, 0, UI_STATUS_TOP, 40, 1);
     cwin_init(&w_prompt,    txt_screen, 0, UI_PROMPT_TOP, 40, UI_PROMPT_HEIGHT);
     cwin_init(&w_output,    txt_screen, 0, UI_OUTPUT_TOP, 40, UI_OUTPUT_HEIGHT);
+    cwin_init(&w_bottom,    txt_screen, 0, UI_BOTTOM_TOP, 40, UI_BOTTOM_HEIGHT);
 
     ui_quasi_frame(UI_PROMPT_TOP-1, UI_PROMPT_TOP+UI_PROMPT_HEIGHT, "prompt");
     ui_quasi_frame(UI_OUTPUT_TOP-1, UI_OUTPUT_TOP+UI_OUTPUT_HEIGHT, "output");
@@ -248,4 +252,3 @@ char *ui_get_prompt(char *buffer) {
 
     return buffer;
 }
-

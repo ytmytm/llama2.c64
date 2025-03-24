@@ -64,7 +64,6 @@ void generate(Transformer *transformer, Tokenizer *tokenizer, Sampler *sampler, 
         token = next;
 
     }
-    printf("\n");
 
     free(prompt_tokens);
 }
