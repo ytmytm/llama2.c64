@@ -1,3 +1,7 @@
+[20250324]
+On (abandoned) branch feature-fastmult there is not-so fast float32 multiplication based on a tabulated uint8_t*uint8_t times tabulated
+(64KB). Makes token generation 2x slower though. It may come back if/when we try to add quantized weights.
+
 [20250322]
 Some UI polish, initialize random number generator with seed value from CIA1 IRQ timer and VIC raster register read after user input,
 so essentially random.

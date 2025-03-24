@@ -100,12 +100,12 @@ void ui_render_steps(void) {
     char y = wherey();
     gotoxy(20,19);
     textcolor(COLOR_WHITE);
-    printf("%d", steps);
-    int minutes = steps * 8;
-    int hours = minutes / 60;
+    printf("%d   ", steps);
+    uint16_t minutes = (uint32_t)steps * 488 / 60;
+    uint16_t hours = minutes / 60;
     minutes = minutes % 60;
     gotoxy(20,21);
-    printf("%d:%02d", hours, minutes);
+    printf("%d:%02d   ", hours, minutes);
     gotoxy(x, y);
 }
 
@@ -201,6 +201,7 @@ void ui_setnumberoftokens(uint16_t n) {
     char x = wherex();
     char y = wherey();
     gotoxy(40-2-3,UI_PROMPT_TOP-1);
+    textcolor(COLOR_YELLOW);
     puts(buf);
     gotoxy(x, y);
 }
