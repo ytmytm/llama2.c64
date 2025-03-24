@@ -18,5 +18,15 @@ void safe_printf(char *piece) {
         }
     }
     if (piece[0] < 0) { printf("\n"); return; } // for mmaped tokenizer only, why?
-    printf("%s", piece);
+
+    for (uint8_t i = 0; i < strlen(piece); i++) {
+        char c = piece[i];
+        // Convert ASCII to PETSCII
+        if (c >= 0x41 && c <= 0x5A) {
+            c += 0x80; // Convert uppercase ASCII to PETSCII
+        } else if (c >= 0x61 && c <= 0x7A) {
+            c -= 0x20; // Convert lowercase ASCII to PETSCII
+        }
+        putpch(c);
+    }
 }
