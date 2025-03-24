@@ -39,7 +39,7 @@ void generate(Transformer *transformer, Tokenizer *tokenizer, Sampler *sampler, 
     uint16_t pos = 0;     // position in the sequence
     while (pos < steps) {
 
-        ui_setcurrenttoken(pos,steps);
+        ui_setcurrenttoken(pos+1,steps);
 
         // forward the transformer to get logits for the next token
         float* logits = forward(transformer, token, pos);
