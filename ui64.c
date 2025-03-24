@@ -95,9 +95,10 @@ void ui_render_temp(void) {
     gotoxy(x, y);
 }
 
-void ui_render_steps(void) {
+void ui_render_steps(uint16_t maxsteps) {
 
     if (steps < 10) steps = 10;
+    if (steps > maxsteps) steps = maxsteps;
 
     char x = wherex();
     char y = wherey();
@@ -133,7 +134,7 @@ void ui_startup_screen(Config64 *c) {
     gotoxy(20,9); textcolor(COLOR_YELLOW); printf("%d", c->n_heads);
     gotoxy(2,10); textcolor(COLOR_GREEN); printf("k/v heads:");
     gotoxy(20,10); textcolor(COLOR_YELLOW); printf("%d", c->n_kv_heads);
-    gotoxy(2,11); textcolor(COLOR_GREEN); printf("sequence len:");
+    gotoxy(2,11); textcolor(COLOR_GREEN); printf("max sequence len:");
     gotoxy(20,11); textcolor(COLOR_YELLOW); printf("%d", c->seq_len);
     gotoxy(2,12); textcolor(COLOR_GREEN); printf("vocabulary size:");
     gotoxy(20,12); textcolor(COLOR_YELLOW); printf("%d", c->vocab_size);
@@ -149,17 +150,17 @@ void ui_startup_screen(Config64 *c) {
     textcolor(COLOR_RED);
     gotoxy(8,24); printf("press <return> to start");
 
-    ui_render_steps();
+    ui_render_steps(c->seq_len);
     ui_render_temp();
     while (1) {
-        char c = getch();
-        if (c == ',') { steps--; ui_render_steps(); }
-        if (c == '.') { steps++; ui_render_steps(); }
-        if (c == '<') { steps-=10; ui_render_steps(); }
-        if (c == '>') { steps+=10; ui_render_steps(); }
-        if (c == '-') { temperature -= 0.1; ui_render_temp(); }
-        if (c == '+') { temperature += 0.1; ui_render_temp(); }
-        if (c == PETSCII_RETURN || c == 10 ) { break; }
+        char ch = getch();
+        if (ch == ',') { steps--; ui_render_steps(c->seq_len); }
+        if (ch == '.') { steps++; ui_render_steps(c->seq_len); }
+        if (ch == '<') { steps-=10; ui_render_steps(c->seq_len); }
+        if (ch == '>') { steps+=10; ui_render_steps(c->seq_len); }
+        if (ch == '-') { temperature -= 0.1; ui_render_temp(); }
+        if (ch == '+') { temperature += 0.1; ui_render_temp(); }
+        if (ch == PETSCII_RETURN || ch == 10 ) { break; }
     }
 }
 
