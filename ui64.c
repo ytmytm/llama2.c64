@@ -239,6 +239,13 @@ char *ui_get_prompt(char *buffer) {
 
     clock_init(); // restart clock
 
+    // Convert buffer from PETSCII to ASCII
+    for (uint16_t i = 0; i < strlen(buffer); i++) {
+        if ((buffer[i] >= 0x41 && buffer[i] <= 0x5A) || (buffer[i] >= 0x61 && buffer[i] <= 0x7A)) {
+            buffer[i] ^= 0x20; // Convert uppercase PETSCII to ASCII
+        }
+    }
+
     return buffer;
 }
 
