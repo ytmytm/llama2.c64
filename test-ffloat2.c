@@ -34,38 +34,33 @@ typedef union {
 } FloatBits;
 
 float multiply_float32_via_lut(float a, float b) {
-    FloatBits ua = { .f = a }, ub = { .f = b };
-
-    uint8_t sign_a = ua.bytes[3] & 0x80;
-    uint8_t sign_b = ub.bytes[3] & 0x80;
-
-    uint8_t exp_a = ((ua.bytes[3] & 0x7F) << 1) | (ua.bytes[2] >> 7);
-    uint8_t exp_b = ((ub.bytes[3] & 0x7F) << 1) | (ub.bytes[2] >> 7);
-
-    ua.bytes[2] &= 0x7F;
-    uint32_t frac_a = ua.u;
-    ub.bytes[2] &= 0x7F;
-    uint32_t frac_b = ub.u;
-
     if (isnan(a) || isnan(b)) return NAN;
     if (isinf(a) || isinf(b)) return (a == 0.0f || b == 0.0f) ? NAN : copysignf(INFINITY, a * b);
     if (a == 0.0f || b == 0.0f) return 0.0f;
     if (a == 1.0f) return b;
     if (b == 1.0f) return a;
+
+    FloatBits ua = { .f = a }, ub = { .f = b };
+
+    uint8_t exp_a = ((ua.bytes[3] & 0x7F) << 1) | (ua.bytes[2] >> 7);
+    uint8_t exp_b = ((ub.bytes[3] & 0x7F) << 1) | (ub.bytes[2] >> 7);
     if (exp_a == 0 || exp_b == 0) return 0.0f;
+    uint8_t result_exp = exp_a + exp_b - 127;
 
-    frac_a |= 1 << 23;
-    frac_b |= 1 << 23;
+    uint8_t result_sign = (ua.bytes[3] & 0x80) ^ (ub.bytes[3] & 0x80);
 
-    uint8_t A[3] = { frac_a & 0xFF, (frac_a >> 8) & 0xFF, (frac_a >> 16) & 0xFF };
-    uint8_t B[3] = { frac_b & 0xFF, (frac_b >> 8) & 0xFF, (frac_b >> 16) & 0xFF };
+    ua.bytes[2] |= 0x80;
+    ub.bytes[2] |= 0x80;
+
+    uint8_t* A = &ua.bytes[0];
+    uint8_t* B = &ub.bytes[0];
 
     typedef union {
         uint32_t u[2];  // Dwa 32-bitowe słowa
         uint8_t bytes[8]; // 8 bajtów
     } ResultBytes;
     
-    ResultBytes result_bytes = {0};
+    ResultBytes result_bytes = {0}; // important to initialize to zero
     for (uint8_t i = 0; i < 3; ++i) {
         for (uint8_t j = 0; j < 3; ++j) {
             uint16_t partial = mult8_uint8_lut(A[i], B[j]);
@@ -87,7 +82,6 @@ float multiply_float32_via_lut(float a, float b) {
         }
     }
 
-    uint8_t result_exp = exp_a + exp_b - 127;
     FloatBits result_frac;
     result_frac.u = (result_bytes.u[1] << 9) | (result_bytes.u[0] >> 23);
 
@@ -95,11 +89,6 @@ float multiply_float32_via_lut(float a, float b) {
         result_frac.u >>= 1;
         result_exp++;
     }
-
-    result_frac.bytes[2] &= 0x7F;
-    result_frac.bytes[3] = 0;
-
-    uint8_t result_sign = sign_a ^ sign_b;
 
     FloatBits result;
     result.bytes[0] = result_frac.bytes[0];
