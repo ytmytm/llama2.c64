@@ -95,5 +95,6 @@ class Tokenizer:
 if __name__ == "__main__":
     tokenizer = Tokenizer()
     tokenizer.build_tokenizer("tok512.bin", 512)
-    tokenizer.save_tokenizer("tokenizer-py.bin")
+    tokenizer.save_tokenizer("tokenizer2.bin")
+    tokenizer.free_tokenizer()
     

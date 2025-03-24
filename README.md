@@ -54,8 +54,8 @@ There are two parts to the model: tokenizer and model weights. For C64, they nee
 
 The script will read the tokenizer and model weights and save the corresponding files:
 
+- tokenizer.bin - tokenizer data with NULL-terminated strings, uint16_t vocabulary size and offsets, and with uint8_t string lengths
 - config.bin - model parameters
-- tokenizer.bin - tokenizer data
 - weights.bin - model weights, a REU image padded to the next valid size (2MB, 4MB, 16MB)
 
 ## Verification against `llama2.c`
