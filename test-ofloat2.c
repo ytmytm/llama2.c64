@@ -1,89 +1,51 @@
-// https://raw.githubusercontent.com/drmortalwombat/oscar64/refs/heads/main/include/math.c
-// SIN method from https://www.c64-wiki.com/wiki/SIN with optimization for small angles
-// EXP method from https://www.c64-wiki.com/wiki/EXP
-// general info in https://www.c64-wiki.com/wiki/POLY1
 
-#include <math.h>
+#include <stdint.h>
+//#include <math.h>
+#include <string.h>
+//#include <stdbool.h>
+//#include <stdlib.h>
+#include <stdio.h>
 
-float my_sin(float f)
+#define RANDOM_TESTS 50
+
+typedef uint32_t REUPtr;
+
+// ----------------------------------------------------------------------------
+// REU functions (access to transformer weights)
+
+struct REU
 {
-	float	g = fabs(f);
+    volatile uint8_t status;
+    volatile uint8_t command;
+    volatile uint16_t c64_base;
+    volatile uint16_t reu_base;
+    volatile uint8_t reu_base_bank;
+    volatile uint16_t length;
+    volatile uint8_t irq;
+    volatile uint8_t control;
+};
 
-    if (g < 0.5) {
-        float f2 = f * f;
-        // Third-order approximation: sin(x) ≈ x - x³/6
-        // return f * (1.0f - f2 / 6.0f);
-      
-        // Fifth-order approximation for better accuracy while still efficient
-        return f * (1.0 - f2 * (1.0/6.0 - f2/120.0));
-    }
+#define reu     (*((struct REU *)0xdf00))
 
-	float	m = f < 0.0 ? -1.0 : 1.0;
-
-	g *= 0.5 / PI;
-	g -= floor(g);
-
-	if (g >= 0.5)
-	{
-		m = -m;
-		g -= 0.5;
-	}
-	if (g >= 0.25)
-		g = 0.5 - g;
-
-    float g2 = g * g;
-    // Using Horner's method for polynomial evaluation
-    float s = ((((((-14.381390672) * g2 
-        + 42.007797122) * g2 
-        - 76.704170257) * g2 
-        + 81.605223686) * g2 
-        - 41.341702104) * g2 
-        + 6.2831853069) * g;
-
-	return s * m;
+void REU_init() {
+    reu.control = 0; // increment both addresses
 }
 
-
-float my_cos(float f)
-{
-	return my_sin(f + 0.5 * PI);
+void REU_getf(REUPtr ptr, volatile float* out, uint16_t size) {
+    reu.c64_base = (uint16_t)out;
+    reu.reu_base = (uint16_t)(ptr & 0xFFFF);
+    reu.reu_base_bank = (uint8_t)((ptr >> 16) & 0xFF);
+    reu.length = size;
+    reu.command = 0x91; // read from REU, execute immediately
 }
 
-float my_exp(float f)
-{
-    static const union {
-        uint32_t i;
-        float f;
-    } log2e_const = { 0x3FB8AA3B };  // log_2(e) w IEEE 754
-
-//	f *= 1.442695041; // f*=log_2(e)
-    f *= log2e_const.f; // f*=log_2(e)
-
-	float	ff = floor(f), g = f - ff; // split into integer and fractional part
-	
-	int	fi = (int)ff;
-	
-	union {
-		float	f;
-		int		i[2];
-	}	x;
-	x.f = 0;
-
-	x.i[1] = (fi + 0x7f) << 7;
-	
-    float s = 2.1498763701e-5;
-    s = s * g + 1.4352314037e-4;
-    s = s * g + 1.3422634825e-3;
-    s = s * g + 9.6140170135e-3;
-    s = s * g + 5.5505126860e-2;
-    s = s * g + 0.24022638460;
-    s = s * g + 0.69314718618;
-    s = s * g + 1.0;
-
-	return s * x.f;
+void REU_putf(REUPtr ptr, volatile float* in, uint16_t size) {
+    reu.c64_base = (uint16_t)in;
+    reu.reu_base = (uint16_t)(ptr & 0xFFFF);
+    reu.reu_base_bank = (uint8_t)((ptr >> 16) & 0xFF);
+    reu.length = size;
+    reu.command = 0x90; // write to REU, execute immediately
 }
-
-//// 
 
 static inline REUPtr index_uint8(uint8_t a, uint8_t b) {
     return (((uint32_t)a << 8) | b) << 1;
@@ -199,4 +161,42 @@ void multiply_float32_via_lut(const float* a, const float* b, float* out_result)
     result->bytes[2] = (result->bytes[2] & 0x7F) | ((result_exp & 1) << 7);
     result->bytes[3] = (result_sign) | ((result_exp >> 1) & 0x7F);
 
+}
+
+typedef struct { float a, b; } fpair;
+
+int main(void) {
+    printf("Generating LUT...\n");
+    build_lut_uint8();
+
+    fpair tests[] = {
+        {3.14159, -2.71828}, {1.0, 1.0}, {0.0, 5.0}, {5.0, 0.0},
+        {1.0, 123.456}, {123.456, 1.0},
+        {0.9999999, 1.0000001}, {-0.5, -0.5}, {0.125, 8.0}, {3.5, 0.25},
+        {1.0 / 3.0, 3.0},
+    };
+
+    printf("\nFixed test cases:\n");
+    for (size_t i = 0; i < sizeof(tests)/sizeof(tests[0]); ++i) {
+        float a = tests[i].a, b = tests[i].b;
+        float res;
+        float expected = a * b;
+        multiply_float32_via_lut(&a, &b, &res);
+
+        printf("%f * %f = %f (expected %f)\n", a, b, res, expected);
+    }
+
+    printf("\nRandom test cases:\n");
+    FloatBits a, b;
+    for (int i = 0; i < RANDOM_TESTS; ++i) {
+        a.u = rand();
+        b.u = rand();
+        float res;
+        float expected = a.f * b.f;
+        multiply_float32_via_lut(&a.f, &b.f, &res);
+
+        printf("%f * %f = %f (expected %f)\n", a.f, b.f, res, expected);
+    }
+
+    return 0;
 }

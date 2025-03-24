@@ -95,6 +95,7 @@ void matmul(REUPtr xout, float* x, REUPtr w, uint8_t n, uint8_t d) {
     float *xof = xobuf;
     float *wif;
     float *xi;
+    float res;
     for (uint8_t i = 0; i < d; i++) {
         (*xof) = 0.0;
         xi = x;
@@ -102,7 +103,8 @@ void matmul(REUPtr xout, float* x, REUPtr w, uint8_t n, uint8_t d) {
         w += n*sizeof(float);
         wif = wifbuf;
         for (uint8_t j = 0; j < n; j++) {
-            (*xof) += (*wif) * (*xi);
+            multiply_float32_via_lut(wif, xi, &res);
+            (*xof) += res;
             wif++;
             xi++;
         }
@@ -118,6 +120,7 @@ void matmul_l(float* xout, float* x, REUPtr w, uint8_t n, uint8_t d) {
     float *xo = xout;
     float *wif;
     float *xi;
+    float res;
     for (uint8_t i = 0; i < d; i++) {
         (*xo) = 0.0;
         xi = x;
@@ -125,7 +128,8 @@ void matmul_l(float* xout, float* x, REUPtr w, uint8_t n, uint8_t d) {
         w += n*sizeof(float);
         wif = wifbuf;
         for (uint8_t j = 0; j < n; j++) {
-            (*xo) += (*wif) * (*xi);
+            multiply_float32_via_lut(wif, xi, &res);
+            (*xo) += res;
             wif++;
             xi++;
         }
@@ -140,6 +144,7 @@ void matmul_ll(float* xout, float* x, REUPtr w, uint8_t n, uint16_t d) {
     float *xo = xout;
     float *wif;
     float *xi;
+    float res;
     for (uint16_t i = 0; i < d; i++) {
         (*xo) = 0.0;
         xi = x;
@@ -147,7 +152,8 @@ void matmul_ll(float* xout, float* x, REUPtr w, uint8_t n, uint16_t d) {
         w += n*sizeof(float);
         wif = wifbuf;
         for (uint8_t j = 0; j < n; j++) {
-            (*xo) += (*wif) * (*xi);
+            multiply_float32_via_lut(wif, xi, &res);
+            (*xo) += res;
             wif++;
             xi++;
         }

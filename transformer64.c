@@ -119,6 +119,11 @@ void load_transformer(Transformer *t) {
     t->config = (Config64*) config_bin;
     REU_init();
 
+    // build the LUT for uint8 multiplication; must be at REU_Base=0
+    printf(p"Generating LUT...\n");
+    build_lut_uint8();
+    reu_base += 0x10000; // skip the LUT
+
     memory_map_weights(t);
     // allocate the RunState buffers
     malloc_run_state(t);
