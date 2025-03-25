@@ -58,11 +58,18 @@ The script will read the tokenizer and model weights and save the corresponding 
 - config.bin - model parameters
 - weights.bin - model weights, a REU image padded to the next valid size (2MB, 4MB, 16MB)
 
+Original model weights and tokenizer file came from [tinyllamas](https://huggingface.co/karpathy/tinyllamas/tree/main/stories260K) repository. You will find there also training information.
+
 ## Verification against `llama2.c`
 
 Run llama2.c in deterministic mode (temperature=0.0) and try the same prompt on C64:
 ```
 ./run stories260K.bin -z tok512.bin -t 0 -i "Zoo" -n 60
+```
+
+In both cases you should see
+```
+Zoo was a little girl named Lily. She loved to play outside in the park. One day, she saw a big, red ball. She wanted to play with it, but she didn't want to play with
 ```
 
 ## Memory
