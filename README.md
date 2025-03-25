@@ -1,6 +1,6 @@
 # Llama2.c64
 
-This is a [llama2.c](https://github.com/karpathy/llama2.c) port to the C64 equipped with [260K tinystories model](https://huggingface.co/karpathy/tinyllamas/tree/main/stories260K).
+This is a [llama2.c](https://github.com/karpathy/llama2.c) port to the C64 equipped with the [260K tinystories model](https://huggingface.co/karpathy/tinyllamas/tree/main/stories260K).
 
 You can recompile it to run your own model. As long as it fits within 2MB (real hardware) or 16MB (virtual like UII+) together with caches, it should work fine.
 
@@ -50,7 +50,7 @@ Ported to C64 by Maciej 'YTM/Elysium' Witkowiak using [oscar64](https://github.c
 
 ## Model
 
-There are two parts to the model: tokenizer and model weights. For C64, they need to be processed a bit. This can be done with `generate-model-files.py` script.
+There are two parts to the model: tokenizer and model weights. For C64, they need to be processed a bit. This can be done with the `generate-model-files.py` script.
 
 The script will read the tokenizer and model weights and save the corresponding files:
 
@@ -58,7 +58,7 @@ The script will read the tokenizer and model weights and save the corresponding 
 - config.bin - model parameters
 - weights.bin - model weights, a REU image padded to the next valid size (2MB, 4MB, 16MB)
 
-Original model weights and tokenizer file came from [tinyllamas](https://huggingface.co/karpathy/tinyllamas/tree/main/stories260K) repository. You will find there also training information.
+Original model weights and tokenizer file came from the [tinyllamas](https://huggingface.co/karpathy/tinyllamas/tree/main/stories260K) repository. You will find there also training information.
 
 ## Verification against `llama2.c`
 
@@ -67,7 +67,7 @@ Run llama2.c in deterministic mode (temperature=0.0) and try the same prompt on 
 ./run stories260K.bin -z tok512.bin -t 0 -i "Zoo" -n 60
 ```
 
-In both cases you should see
+In both cases, you should see
 ```
 Zoo was a little girl named Lily. She loved to play outside in the park. One day, she saw a big, red ball. She wanted to play with it, but she didn't want to play with
 ```
@@ -94,7 +94,7 @@ My polynomial factors are actually copied from C64 BASIC.
 
 No, it really runs the same set of calculations as [llama2.c](https://github.com/karpathy/llama2.c) and returns exactly the same results. Just on a humble C64.
 
-There is plenty of information provided in README of [llama2.c](https://github.com/karpathy/llama2.c).
+There is plenty of information provided in the README of [llama2.c](https://github.com/karpathy/llama2.c).
 You can [read more about Transformer models here](https://medium.com/@smmzhu/demystifying-the-transformer-model-cd73e1b7ac87).
 
 ## What's the performance like? I have been waiting here for 15 minutes and it does nothing
