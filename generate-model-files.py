@@ -2,6 +2,36 @@
 
 import mmap
 import struct
+import os
+
+class Config:
+    def __init__(self):
+        self.dim = 0
+        self.hidden_dim = 0
+        self.n_layers = 0
+        self.n_heads = 0
+        self.n_kv_heads = 0
+        self.vocab_size = 0
+        self.seq_len = 0
+
+    def read_checkpoint(self, checkpoint, output_filename="config.bin"):
+        with open(checkpoint, "rb") as file:
+            config_data = file.read(struct.calcsize('iiiiiii'))
+            (self.dim, self.hidden_dim, self.n_layers, self.n_heads, 
+             self.n_kv_heads, self.vocab_size, self.seq_len) = struct.unpack('iiiiiii', config_data)
+
+            shared_weights = self.vocab_size > 0
+            self.vocab_size = abs(self.vocab_size)
+
+        with open(output_filename, "wb") as file:
+            file.write(struct.pack('h', self.dim))
+            file.write(struct.pack('h', self.hidden_dim))
+            file.write(struct.pack('h', self.n_layers))
+            file.write(struct.pack('h', self.n_heads))
+            file.write(struct.pack('h', self.n_kv_heads))
+            file.write(struct.pack('h', self.vocab_size))
+            file.write(struct.pack('h', self.seq_len))
+            file.write(struct.pack('h', int(shared_weights)))
 
 class Tokenizer:
     def __init__(self):
@@ -93,8 +123,10 @@ class Tokenizer:
         del self.str_buffer
 
 if __name__ == "__main__":
+    config = Config()
+    config.read_checkpoint("stories260K.bin", "config.bin")
     tokenizer = Tokenizer()
-    tokenizer.build_tokenizer("tok512.bin", 512)
+    tokenizer.build_tokenizer("tok512.bin", config.vocab_size)
     tokenizer.save_tokenizer("tokenizer2.bin")
     tokenizer.free_tokenizer()
     
