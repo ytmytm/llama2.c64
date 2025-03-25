@@ -1,8 +1,8 @@
 # Llama2.c64
 
-This is a [llama2.c](https://github.com/karpathy/llama2.c) port to the C64.
+This is a [llama2.c](https://github.com/karpathy/llama2.c) port to the C64 equipped with [260K tinystories model](https://huggingface.co/karpathy/tinyllamas/tree/main/stories260K).
 
-It can run the provided `tinystories` (260K) model, or you can recompile it to run your own model. As long as it fits within 2MB (real hardware) or 16MB (virtual like UII+) together with caches, it will work fine.
+You can recompile it to run your own model. As long as it fits within 2MB (real hardware) or 16MB (virtual like UII+) together with caches, it should work fine.
 
 This project is a port of the Llama2.c codebase to the Commodore 64, hence the name `llama2.c64`. The goal is to bring the functionality of Llama2 to the C64 platform, leveraging its unique hardware capabilities.
 
