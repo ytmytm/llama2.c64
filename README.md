@@ -1,5 +1,7 @@
 # Llama2.c64
 
+Ported to C64 by Maciej 'YTM/Elysium' Witkowiak using [oscar64](https://github.com/drmortalwombat/oscar64)
+
 This is a [llama2.c](https://github.com/karpathy/llama2.c) port to the C64 equipped with the [260K tinystories model](https://huggingface.co/karpathy/tinyllamas/tree/main/stories260K).
 
 You can recompile it to run your own model. As long as it fits within 2MB (real hardware) or 16MB (virtual like UII+) together with caches, it should work fine.
@@ -37,10 +39,6 @@ x64 -warp -reu -reusize 2048 -reuimage weights.bin llama2c64.prg
 - None really, this is fantastic
 - Ram Expansion Unit (REU) with at least 2MB is necessary
 - Feels a bit slow, not for the impatient
-
-# Credits
-
-Ported to C64 by Maciej 'YTM/Elysium' Witkowiak using [oscar64](https://github.com/drmortalwombat/oscar64)
 
 # Technical details
 
@@ -95,7 +93,7 @@ You can [read more about Transformer models here](https://medium.com/@smmzhu/dem
 
 ## What's the performance like? I have been waiting here for 15 minutes and it does nothing
 
-You will receive one output token about every 8 minutes. Note that the very first token is a start marker, so the text in the output will start appearing after 16 minutes.
+You will receive one output token approximately every 8 minutes. Note that the very first token is a start marker, so the text in the output will start appearing after 16 minutes. All the tokens from the input will be repeated in the output before any sampling starts.
 
 ## What do those parameters mean?
 
@@ -123,7 +121,7 @@ Yes, but just a bit. Several things can be optimized, but the truth is - it does
 
 ## Will it run faster with SCPU?
 
-Certainly, but the results are wrong. I don't know why. (Tested with VICE)
+Certainly faster, but the results are wrong. I don't know why. (Tested with VICE)
 
 ## What about a quantized model?
 
