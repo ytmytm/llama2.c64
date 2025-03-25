@@ -1,5 +1,7 @@
 #!/bin/sh
 
+# ./generate-model-files.py
+
 /home/maciej/Projekty/espllm/oscar64/bin/oscar64 -O2 llama2c64.c \
  && x64 -warp -reu -reusize 2048 -reuimage weights.bin llama2c64.prg
 
