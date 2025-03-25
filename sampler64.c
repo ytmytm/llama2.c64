@@ -36,7 +36,6 @@ uint16_t sample_mult(float* probabilities, uint16_t n, float coin) {
     return n - 1; // in case of rounding errors
 }
 
-/* XXX NOT TESTED YET
 void quicksort(ProbIndex* arr, uint16_t left, uint16_t right) {
     uint16_t i = left, j = right;
     ProbIndex tmp;
@@ -64,7 +63,7 @@ void quicksort(ProbIndex* arr, uint16_t left, uint16_t right) {
         quicksort(arr, i, right);
 }
 
-int sample_topp(float* probabilities, int n, float topp, ProbIndex* probindex, float coin) {
+uint16_t sample_topp(float* probabilities, uint16_t n, float topp, ProbIndex* probindex, float coin) {
     // top-p sampling (or "nucleus sampling") samples from the smallest set of
     // tokens that exceed probability topp. This way we never sample tokens that
     // have very low probabilities and are less likely to go "off the rails".
@@ -106,7 +105,6 @@ int sample_topp(float* probabilities, int n, float topp, ProbIndex* probindex, f
     }
     return probindex[last_idx].index; // in case of rounding errors
 }
-*/
 
 void build_sampler(Sampler* sampler, uint16_t vocab_size, float temperature, float topp, uint32_t rng_seed) {
     sampler->vocab_size = vocab_size;
@@ -115,14 +113,11 @@ void build_sampler(Sampler* sampler, uint16_t vocab_size, float temperature, flo
     sampler->rng_state = rng_seed;
     // buffer only used with nucleus sampling; may not need but it's ~small
     // can be removed if not using top-p sampling: -p 1.0
-// XXX64 bring back if top-p sampling is implemented
-//    printf("Allocating sampler->probindex: %zu bytes\n", sampler->vocab_size * sizeof(ProbIndex));
-//    sampler->probindex = malloc(sampler->vocab_size * sizeof(ProbIndex));
+    sampler->probindex = malloc(sampler->vocab_size * sizeof(ProbIndex));
 }
 
 void free_sampler(Sampler* sampler) {
-// XXX64 bring back if top-p sampling is implemented
-// free(sampler->probindex);
+    free(sampler->probindex);
 }
 
 uint32_t random_u32(uint32_t *state) {
@@ -151,7 +146,11 @@ void softmax_local(float* x, uint16_t size) {
         // exp and sum
         float sum = 0.0;
         for (uint16_t i = 0; i < size; i++) {
+            #ifdef TEST
+            x[i] = exp(x[i] - max_val);
+            #else
             x[i] = my_exp(x[i] - max_val);
+            #endif
             sum += x[i];
         }
         // normalize
@@ -178,10 +177,8 @@ uint16_t sample(Sampler* sampler, float* logits) {
             // simply sample from the predicted probability distribution
             next = sample_mult(logits, sampler->vocab_size, coin);
         } else {
-            next = sample_mult(logits, sampler->vocab_size, coin);
-        // XXX64 bring back if top-p sampling is implemented
             // top-p (nucleus) sampling, clamping the least likely tokens to zero
-//            next = sample_topp(logits, sampler->vocab_size, sampler->topp, sampler->probindex, coin);
+            next = sample_topp(logits, sampler->vocab_size, sampler->topp, sampler->probindex, coin);
         }
     }
     return next;

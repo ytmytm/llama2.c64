@@ -1,3 +1,7 @@
+[20250325]
+Implemented top-p sampler, updated tests and ui.
+Updated documentation to point to original repositories, including training scripts, model weights and tokenizer data.
+
 [20250324]
 On (abandoned) branch feature-fastmult there is a not-so fast float32 multiplication based on uint8_t*uint8_t times table (64KB).
 Makes token generation 2x slower though. It may come back if/when we try to add quantized weights.

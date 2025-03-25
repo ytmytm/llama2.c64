@@ -12,7 +12,7 @@ test:	run runfull
 	./run stories260K.bin -t $(TEMP) -s $(SEED) -n $(NTOKENS) -i "Once upon"
 
 test-sampler: sampler64.c sampler64.h test-sampler.c
-	gcc $(CFLAGS) sampler64.c
+	gcc $(CFLAGS) sampler64.c -DTEST
 	gcc $(CFLAGS) test-sampler.c
 	gcc test-sampler.o sampler64.o -o test-sampler $(LDFLAGS)
 	./test-sampler

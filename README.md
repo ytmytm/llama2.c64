@@ -104,7 +104,10 @@ You will receive one output token about every 8 minutes. Note that the very firs
 ## What do those parameters mean?
 
 - `temperature` controls the randomness of the output, if set to `0.0` the result is deterministic
+- `top-p` ensures that tokens with tiny probabilities do not get sampled. Lower values make the output more focused and deterministic, while higher values increase diversity, if set to `0.0` the feature is off
 - `output tokens` controls the number of output tokens, note that one token may be more than one letter (e.g. `was` or `once` are tokens in the `tinystories` model)
+
+*To control the diversity of samples, use either the temperature or the top-p value, but not both. Vary the temperature between 0.0 and 1.0 and keep top-p off (set to 0.0), or vary the top-p value between 0.0 and 1.0 and keep the temperature at 1.0.*
 
 ## What is the yellow number under the clock?
 

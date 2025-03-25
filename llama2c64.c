@@ -66,6 +66,8 @@ int main(void) {
 
         generate(&transformer, &tokenizer, &sampler, prompt, steps);
 
+        free_sampler(&sampler);
+
         ui_settopstatus("again? (y/n)");
         if (getche() != 'y') {
             exit(0);

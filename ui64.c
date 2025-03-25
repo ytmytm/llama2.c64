@@ -97,6 +97,19 @@ void ui_render_temp(void) {
     gotoxy(x, y);
 }
 
+void ui_render_topp(void) {
+
+    if (topp < 0.0) topp = 0.0;
+    if (topp > 1.0) topp = 1.0;
+
+    char x = wherex();
+    char y = wherey();
+    gotoxy(20,18);
+    textcolor(COLOR_WHITE);
+    printf("%3.1f", topp);
+    gotoxy(x, y);
+}
+
 void ui_render_steps(uint16_t maxsteps) {
 
     if (steps < 10) steps = 10;
@@ -144,22 +157,27 @@ void ui_startup_screen(Config64 *c) {
     ui_quasi_frame(15,23, "PARAMETERS");
     textcolor(COLOR_GREEN);
     gotoxy(2,17); printf("temperature:");
+    gotoxy(2,18); printf("top-p:");
     gotoxy(2,19); printf("output tokens:");
     gotoxy(2,21); printf("estimated time:");
     textcolor(COLOR_LT_GREY);
     gotoxy(27,17); printf("(+/-)");
+    gotoxy(27,18); printf("(:/;)");
     gotoxy(27,19); printf("(,/. or </>)");
     textcolor(COLOR_RED);
     gotoxy(8,24); printf("press <return> to start");
 
     ui_render_steps(c->seq_len);
     ui_render_temp();
+    ui_render_topp();
     while (1) {
         char ch = getch();
         if (ch == ',') { steps--; ui_render_steps(c->seq_len); }
         if (ch == '.') { steps++; ui_render_steps(c->seq_len); }
         if (ch == '<') { steps-=10; ui_render_steps(c->seq_len); }
         if (ch == '>') { steps+=10; ui_render_steps(c->seq_len); }
+        if (ch == ':') { topp -= 0.1; ui_render_topp(); }
+        if (ch == ';') { topp += 0.1; ui_render_topp(); }
         if (ch == '-') { temperature -= 0.1; ui_render_temp(); }
         if (ch == '+') { temperature += 0.1; ui_render_temp(); }
         if (ch == PETSCII_RETURN || ch == 10 ) { break; }

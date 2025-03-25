@@ -7,7 +7,7 @@ void test_sampler(float* logits, uint16_t vocab_size, float temperature, float t
     Sampler sampler;
     build_sampler(&sampler, vocab_size, temperature, topp, rng_seed);
     uint16_t result = sample(&sampler, logits);
-    printf("TEMP: %.1f, SEED: %d, EXPECTED: %d, RESULT: %d\n", temperature, (uint16_t)rng_seed, expected, result);
+    printf("TEMP: %.1f, TOPP: %.1f, SEED: %d, EXPECTED: %d, RESULT: %d\n", temperature, topp, (uint16_t)rng_seed, expected, result);
     free_sampler(&sampler);
 }
 
@@ -21,8 +21,8 @@ void test_random_numbers(uint32_t rng_seed, float* expected_values) {
 }
 
 int main(void) {
-    uint16_t vocab_size = 5;
     float logits[] = {0.1, 0.2, 0.3, 0.25, 0.15}; // Random numbers that sum up to 1.0
+    const uint16_t vocab_size = sizeof(logits) / sizeof(logits[0]);
 
     // Test with temperature = 0 (greedy argmax)
     test_sampler(logits, vocab_size, 0.0, 1.0, 12345, 2); // Expected: 2 (highest probability)
@@ -34,6 +34,18 @@ int main(void) {
     // Test with temperature = 0.5 and different RNG seeds
     test_sampler(logits, vocab_size, 0.5, 1.0, 12345, 3); // Expected: 2 (based on RNG seed)
     test_sampler(logits, vocab_size, 0.5, 1.0, 54321, 1); // Expected: 3 (based on RNG seed)
+
+    float logits2[] = {0.01, 0.2, 0.09, 0.25, 0.15}; // Random numbers that sum up to 1.0
+    uint16_t vocab_size2 = sizeof(logits2) / sizeof(logits2[0]);
+
+    // Test with temperature = 0.9, topp=0.8 and different RNG seeds
+    test_sampler(logits2, vocab_size2, 0.9, 0.8, 12345, 2); // Expected: 2 (based on RNG seed)
+    test_sampler(logits2, vocab_size2, 0.9, 0.8, 54321, 1); // Expected: 3 (based on RNG seed)
+
+    // Test with temperature = 0.5, topp=0.8 and different RNG seeds
+    test_sampler(logits2, vocab_size2, 0.5, 0.8, 12345, 2); // Expected: 2 (based on RNG seed)
+    test_sampler(logits2, vocab_size2, 0.5, 0.8, 54321, 1); // Expected: 3 (based on RNG seed)
+
 
     // Test random number generation
     float expected_values_12345[] = {0.776939, 0.395173, 0.655770, 0.455296, 0.167368}; // Replace with actual expected values
