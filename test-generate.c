@@ -82,13 +82,13 @@ int main(int argc, char *argv[]) {
     Tokenizer tokenizer;
     printf("Vocab size: %i\n",transformer.config.vocab_size);
     if (tokenizer_path == NULL) {
-        tokenizer_path = "tokenizer2.bin";
-        printf("Using processed tokenizer2.bin\n");
+        tokenizer_path = "tokenizer.bin";
+        printf("Using processed tokenizer.bin\n");
         load_tokenizer(&tokenizer, tokenizer_path);
     } else {
         build_tokenizer(&tokenizer, tokenizer_path, transformer.config.vocab_size);
-        save_tokenizer(&tokenizer, "tokenizer2.bin");
-        printf("Saved processed tokenizer2.bin\n");
+        save_tokenizer(&tokenizer, "tokenizer.bin");
+        printf("Saved processed tokenizer.bin\n");
     }
     #ifdef DEBUG
     printf("max_token_length: %i\n", tokenizer.max_token_length);

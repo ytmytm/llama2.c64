@@ -3,7 +3,29 @@
 import mmap
 import struct
 import os
+import argparse
 
+class Weights:
+    def __init__(self):
+        self.weights_data = None
+
+    def read_weights(self, checkpoint, output_filename="weights.bin"):
+        with open(checkpoint, "rb") as file:
+            file.seek(28)  # Skip the first 28 bytes (Config)
+            self.weights_data = file.read()
+
+        with open(output_filename, "wb") as file:
+            file.write(self.weights_data)
+
+        self.pad_to_next_multiple(output_filename)
+
+    def pad_to_next_multiple(self, filename, multiples=(2, 4, 8, 16)):
+        file_size = os.path.getsize(filename)
+        next_multiple = min(m for m in multiples if m * 1024 * 1024 > file_size)
+        padding_size = next_multiple * 1024 * 1024 - file_size
+
+        with open(filename, "ab") as file:
+            file.write(b'\0' * padding_size)
 class Config:
     def __init__(self):
         self.dim = 0
@@ -123,10 +145,22 @@ class Tokenizer:
         del self.str_buffer
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Generate model files from checkpoints and tokenizer data.")
+    parser.add_argument("--checkpoint", default="stories260K.bin", help="Path to the model checkpoint file. Default is 'stories260K.bin'.")
+    parser.add_argument("--tokenizer", default="tok512.bin", help="Path to the tokenizer file. Default is 'tok512.bin'.")
+    args = parser.parse_args()
+
     config = Config()
-    config.read_checkpoint("stories260K.bin", "config.bin")
+    config.read_checkpoint(args.checkpoint, "config.bin")
+    
     tokenizer = Tokenizer()
-    tokenizer.build_tokenizer("tok512.bin", config.vocab_size)
-    tokenizer.save_tokenizer("tokenizer2.bin")
+    tokenizer.build_tokenizer(args.tokenizer, config.vocab_size)
+    tokenizer.save_tokenizer("tokenizer.bin")
     tokenizer.free_tokenizer()
     
+    weights = Weights()
+    weights.read_weights(args.checkpoint, "weights.bin")
+
+    print(f"Tokenizer saved to tokenizer.bin")
+    print(f"Config saved to config.bin")
+    print(f"Weights saved as REU image to weights.bin")

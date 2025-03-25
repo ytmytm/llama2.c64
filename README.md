@@ -50,7 +50,7 @@ Ported to C64 by Maciej 'YTM/Elysium' Witkowiak using [oscar64](https://github.c
 
 ## Model
 
-There are two parts to the model: tokenizer and model weights. For C64, they need to be processed a bit. This can be done with a `TODO:script`.
+There are two parts to the model: tokenizer and model weights. For C64, they need to be processed a bit. This can be done with `generate-model-files.py` script.
 
 The script will read the tokenizer and model weights and save the corresponding files:
 
@@ -85,8 +85,8 @@ My polynomial factors are actually copied from C64 BASIC.
 
 ## Branches
 
-- `wrapped_debug` - development branch with lots of debug messages and data structure dumps for calculation comparisons with `llama2.c`, use that as a start for the quantized version; it also shows how much memory is used for each part
-- `feature-fastmult` - attempt to speed up `float32` multiplication using `uint8_t` times table (64K in REU); it turned out to be twice as slow, but nevertheless can be useful for the quantized version
+- `wrapped_debug` - development branch with lots of debug messages and data structure dumps for calculation comparisons with `llama2.c`, use that as a start for the quantized version; it also shows how much memory is used for each part (note: top-p was not backported there)
+- `feature-fastmult` - an attempt to speed up `float32` multiplication using `uint8_t` times table (64K in REU); it turned out to be twice as slow, but nevertheless can be useful for the quantized version
 
 # FAQ
 
