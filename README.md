@@ -10,7 +10,7 @@ This project is a port of the Llama2.c codebase to the Commodore 64, hence the n
 
 ## Parameter screen
 
-**TODO**
+![Parameter screen](media/01.parameters.png)
 
 ## Prompt and output
 
@@ -23,10 +23,6 @@ Enable REU, set REU size to 2MB, and set REU image to the provided `weights.bin`
 ```
 x64 -warp -reu -reusize 2048 -reuimage weights.bin llama2c64.prg
 ```
-
-## Settings screenshot
-
-**TODO**
 
 # Pros
 
