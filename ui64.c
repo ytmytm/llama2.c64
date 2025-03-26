@@ -84,28 +84,24 @@ float temperature = 0.0;    // 0.0 = greedy deterministic. 1.0 = original. don't
 float topp = 0.9;           // top-p in nucleus sampling. 1.0 = off. 0.9 works well, but slower
 int steps = 60;            // number of steps to run for
 
-void ui_render_temp(void) {
-
+void ui_render_temp_topp(void) {
     if (temperature < 0.0) temperature = 0.0;
     if (temperature > 1.0) temperature = 1.0;
-
-    char x = wherex();
-    char y = wherey();
-    gotoxy(20,17);
-    textcolor(COLOR_WHITE);
-    printf("%3.1f", temperature);
-    gotoxy(x, y);
-}
-
-void ui_render_topp(void) {
-
     if (topp < 0.0) topp = 0.0;
     if (topp > 1.0) topp = 1.0;
 
     char x = wherex();
     char y = wherey();
-    gotoxy(20,18);
+
+    gotoxy(20,17);
     textcolor(COLOR_WHITE);
+    printf("%3.1f", temperature);
+    gotoxy(20,18);
+    if (temperature>0.0) {
+        textcolor(COLOR_WHITE);
+    } else {
+        textcolor(COLOR_LT_GREY);   // if temperature is 0.0, top-p is disabled
+    }
     printf("%3.1f", topp);
     gotoxy(x, y);
 }
@@ -168,18 +164,17 @@ void ui_startup_screen(Config64 *c) {
     gotoxy(8,24); printf("press <return> to start");
 
     ui_render_steps(c->seq_len);
-    ui_render_temp();
-    ui_render_topp();
+    ui_render_temp_topp();
     while (1) {
         char ch = getch();
         if (ch == ',') { steps--; ui_render_steps(c->seq_len); }
         if (ch == '.') { steps++; ui_render_steps(c->seq_len); }
         if (ch == '<') { steps-=10; ui_render_steps(c->seq_len); }
         if (ch == '>') { steps+=10; ui_render_steps(c->seq_len); }
-        if (ch == ':') { topp -= 0.1; ui_render_topp(); }
-        if (ch == ';') { topp += 0.1; ui_render_topp(); }
-        if (ch == '-') { temperature -= 0.1; ui_render_temp(); }
-        if (ch == '+') { temperature += 0.1; ui_render_temp(); }
+        if (ch == ':') { topp -= 0.1; ui_render_temp_topp(); }
+        if (ch == ';') { topp += 0.1; ui_render_temp_topp(); }
+        if (ch == '-') { temperature -= 0.1; ui_render_temp_topp(); }
+        if (ch == '+') { temperature += 0.1; ui_render_temp_topp(); }
         if (ch == PETSCII_RETURN || ch == 10 ) { break; }
     }
 }

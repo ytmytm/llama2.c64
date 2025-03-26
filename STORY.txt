@@ -1,5 +1,5 @@
 [20250326]
-Corrected output printout.
+Corrected output printout. Display layers starting from 1 and visually indicate that top-p has no effect when temperature is 0.0.
 
 [20250325]
 Implemented top-p sampler, updated tests and ui.
