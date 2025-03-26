@@ -16,7 +16,7 @@ This project is a port of the Llama2.c codebase to the Commodore 64, hence the n
 
 ## Prompt and output
 
-**TODO**
+![Parameter screen](media/02.inference.png)
 
 # How to run it with VICE?
 
@@ -44,13 +44,15 @@ x64 -warp -reu -reusize 2048 -reuimage weights.bin llama2c64.prg
 
 ## Model
 
-There are two parts to the model: tokenizer and model weights. For C64, they need to be processed a bit. This can be done with the `generate-model-files.py` script.
+There are two parts to the model: tokenizer and model weights. For C64, they need to be processed a bit.
+
+This is done with the `generate-model-files.py` script.
 
 The script will read the tokenizer and model weights and save the corresponding files:
 
-- tokenizer.bin - tokenizer data with NULL-terminated strings, uint16_t vocabulary size and offsets, and with uint8_t string lengths
-- config.bin - model parameters
-- weights.bin - model weights, a REU image padded to the next valid size (2MB, 4MB, 16MB)
+- `tokenizer.bin` - tokenizer data with NULL-terminated strings, uint16_t vocabulary size and offsets, and with uint8_t string lengths
+- `config.bin` - model parameters
+- `weights.bin` - model weights, a REU image padded to the next valid size (2MB, 4MB, 16MB)
 
 Original model weights and tokenizer file came from the [tinyllamas](https://huggingface.co/karpathy/tinyllamas/tree/main/stories260K) repository. You will find there also training information.
 
@@ -75,7 +77,7 @@ Zoo was a little girl named Lily. She loved to play outside in the park. One day
 ## `math.c`
 
 I provide my own code for `my_sin`, `my_cos`, and `my_exp` for better accuracy than the ones that come with [oscar64](https://github.com/drmortalwombat/oscar64).
-My polynomial factors are actually copied from C64 BASIC.
+These polynomial factors are actually copied from C64 BASIC ROM.
 
 ## Branches
 
@@ -98,7 +100,7 @@ You will receive one output token approximately every 8 minutes. Note that the v
 ## What do those parameters mean?
 
 - `temperature` controls the randomness of the output, if set to `0.0` the result is deterministic
-- `top-p` ensures that tokens with tiny probabilities do not get sampled. Lower values make the output more focused and deterministic, while higher values increase diversity, if set to `0.0` the feature is off
+- `top-p` ensures that tokens with tiny probabilities do not get sampled. Lower values make the output more focused and deterministic, while higher values increase diversity, if set to `0.0` the feature is off. This setting has no effect if temperature is `0.0`
 - `output tokens` controls the number of output tokens, note that one token may be more than one letter (e.g. `was` or `once` are tokens in the `tinystories` model)
 
 *To control the diversity of samples, use either the temperature or the top-p value, but not both. Vary the temperature between 0.0 and 1.0 and keep top-p off (set to 0.0), or vary the top-p value between 0.0 and 1.0 and keep the temperature at 1.0.*
@@ -121,7 +123,7 @@ Yes, but just a bit. Several things can be optimized, but the truth is - it does
 
 ## Will it run faster with SCPU?
 
-Certainly faster, but the results are wrong. I don't know why. (Tested with VICE)
+Certainly faster, but the results are wrong when SCPU is in turbo mode. I don't know why. (Tested with VICE)
 
 ## What about a quantized model?
 
