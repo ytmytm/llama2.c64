@@ -19,7 +19,7 @@ void safe_printf(char *piece) {
             return; // bad byte, don't print it
         }
     }
-    if (piece[0] < 0) { printf("\n"); return; } // for mmaped tokenizer only, why?
+    if (piece[0] < 0) { return; } // for mmaped tokenizer only, why?
 
     for (uint8_t i = 0; i < strlen(piece); i++) {
         char c = piece[i];
@@ -29,6 +29,6 @@ void safe_printf(char *piece) {
         } else if (c >= 0x61 && c <= 0x7A) {
             c -= 0x20; // Convert lowercase ASCII to PETSCII
         }
-        putpch(c);
+        cwin_put_char(&w_output, c, COLOR_WHITE);
     }
 }

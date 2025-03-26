@@ -185,8 +185,9 @@ void ui_startup_screen(Config64 *c) {
 }
 
 void ui_gotooutput(void) {
-    gotoxy(0, UI_OUTPUT_TOP);
-    printf("\x05"); // white
+    textcolor(COLOR_WHITE);
+    cwin_clear(&w_output);
+    cwin_cursor_move(&w_output, 0, 0);
 }
 
 void ui_inference_screen_init(void) {

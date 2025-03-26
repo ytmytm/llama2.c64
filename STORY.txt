@@ -1,7 +1,10 @@
+[20250326]
+Corrected output printout.
+
 [20250325]
 Implemented top-p sampler, updated tests and ui.
 Updated documentation to point to original repositories, including training scripts, model weights and tokenizer data.
-Completed *.bin generating scripts, now old files from llama2.c can be removed (they will stay on `wrapped_debug` branch)
+Completed *.bin generating scripts, now old files from llama2.c can be removed (they will stay on `wrapped_debug` branch).
 
 [20250324]
 On (abandoned) branch feature-fastmult there is a not-so fast float32 multiplication based on uint8_t*uint8_t times table (64KB).
