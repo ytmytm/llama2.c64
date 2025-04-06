@@ -26,6 +26,21 @@ Enable REU, set REU size to 2MB, and set REU image to the provided `weights.bin`
 x64 -warp -reu -reusize 2048 -reuimage weights.bin llama2c64.prg
 ```
 
+# Building and Testing
+
+The project includes a Makefile to simplify building and testing. Here are the available commands:
+
+- `make build` - Compiles the source code with optimization level 2
+- `make test` - Runs the program in VICE with the correct REU settings
+- `make clean` - Removes built files and generated model files
+
+The build process will automatically generate the required model files (`weights.bin`, `config.bin`, and `tokenizer.bin`) from the input files (`stories260K.bin` and `tok512.bin`) if they don't exist.
+
+To build and run the program in one go, simply use:
+```
+make test
+```
+
 # Pros
 
 - Low power consumption
@@ -51,8 +66,8 @@ This is done with the `generate-model-files.py` script.
 The script will read the tokenizer and model weights and save the corresponding files:
 
 - `tokenizer.bin` - tokenizer data with NULL-terminated strings, uint16_t vocabulary size and offsets, and with uint8_t string lengths
-- `config.bin` - model parameters
-- `weights.bin` - model weights, a REU image padded to the next valid size (2MB, 4MB, 16MB)
+- `config.bin` - model parameters converted to uint16_t
+- `weights.bin` - model weights (unchanged float32), a REU image padded to the next valid size (2MB, 4MB, 16MB)
 
 Original model weights and tokenizer file came from the [tinyllamas](https://huggingface.co/karpathy/tinyllamas/tree/main/stories260K) repository. You will find there also training information.
 
@@ -81,7 +96,7 @@ These polynomial factors are actually copied from C64 BASIC ROM.
 
 ## Branches
 
-- `wrapped_debug` - development branch with lots of debug messages and data structure dumps for calculation comparisons with `llama2.c`, use that as a start for the quantized version; it also shows how much memory is used for each part (note: top-p was not backported there)
+- `wrapped_debug` - development branch with lots of debug messages and data structure dumps for calculation comparisons with `llama2.c`, use that as a start for the quantized version; it also shows how much memory is used for each part (note: top-p sampler was not backported there)
 - `feature-fastmult` - an attempt to speed up `float32` multiplication using `uint8_t` times table (64K in REU); it turned out to be twice as slow, but nevertheless can be useful for the quantized version
 
 # FAQ
@@ -111,11 +126,13 @@ That's the number of input tokens. In this model, the input tokens are first all
 
 ## How to compile it?
 
-Usually, I provide a `Makefile` but `oscar64` wants everything in one file, so it's just:
+`oscar64` wants everything in one file, so it's just:
 ```
 oscar64 -O2 llama2c64.c
 ```
 Do not use other optimizations besides `-O0`, `-O1`, or `-O2`, they break the program.
+
+`Makefile` has everything you need to rebuild model files and recompile the program.
 
 ## Can it run faster?
 
@@ -128,3 +145,7 @@ Certainly faster, but the results are wrong when SCPU is in turbo mode. I don't 
 ## What about a quantized model?
 
 If you can provide a pull request for a quantized int8 model, be my guest :)
+
+## Clock doesn't advance
+
+Your CIA is broken or 9VAC is missing.
