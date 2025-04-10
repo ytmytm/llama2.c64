@@ -1,3 +1,6 @@
+[20250410]
+Optimized attn a bit, 62 token generation time went down from 9:31:23 to 9:25:43 (1%). Yay.
+
 [20250326]
 Corrected output printout. Display layers starting from 1 and visually indicate that top-p has no effect when temperature is 0.0.
 
