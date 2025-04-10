@@ -110,7 +110,8 @@ You can [read more about Transformer models here](https://medium.com/@smmzhu/dem
 
 ## What's the performance like? I have been waiting here for 15 minutes and it does nothing
 
-You will receive one output token approximately every 8 minutes. Note that the very first token is a start marker, so the text in the output will start appearing after 16 minutes. All the tokens from the input will be repeated in the output before any sampling starts.
+You will receive one output token approximately every 8 minutes. This is an estimation, the attention step depends on the number of tokens generated so far, so the process gets slower and slower.
+Note that the very first produced token is a start marker, so the text in the output will start appearing after 16 minutes. All the tokens from the input will be repeated in the output before any sampling starts.
 
 ## What do those parameters mean?
 
