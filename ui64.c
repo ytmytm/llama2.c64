@@ -70,9 +70,9 @@ char *txt_screen = (((char *)0x0400));
 
 #define UI_STATUS_TOP 0
 #define UI_PROMPT_TOP 2
-#define UI_PROMPT_HEIGHT 5
+#define UI_PROMPT_HEIGHT 6
 #define UI_OUTPUT_TOP (UI_PROMPT_TOP+UI_PROMPT_HEIGHT+2)
-#define UI_OUTPUT_HEIGHT 12
+#define UI_OUTPUT_HEIGHT 13
 #define UI_BOTTOM_TOP 23
 #define UI_BOTTOM_HEIGHT 1
 
