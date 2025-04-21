@@ -1,3 +1,7 @@
+
+[20250421]
+Detect REU, REU size and config magic bytes signature.
+
 [20250410]
 Optimized attn a bit, 62 token generation time went down from 9:31:23 to 9:25:43 (1%). Yay.
 

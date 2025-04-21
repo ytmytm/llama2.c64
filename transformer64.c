@@ -2,9 +2,11 @@
 
 // C64 port by Maciej 'YTM/Elysium' Witkowiak, 2025
 
+#define SIGNATURE 0x3436324C // 'L264' in little-endian uint32_t, embedded in weights.bin, written by generate-model-files.py
+
 #include "transformer64.h"
 
-REUPtr reu_base = (REUPtr)0; // base address of weights.bin inside REU
+REUPtr reu_base = (REUPtr)(0+sizeof(uint32_t)); // base address of weights.bin inside REU, past the signature magic number
 
 const unsigned char config_bin[] = {
     #embed "config.bin"
@@ -121,6 +123,26 @@ void load_transformer(Transformer *t) {
     t->config = (Config64*) config_bin;
     REU_init();
 
+    // are model weights in REU?
+    uint32_t tmp;
+    uint8_t e = 0;
+    REU_getf((REUPtr)0, (float*)&tmp, sizeof(uint32_t)); // read first 4 bytes of weights.bin
+    if (tmp != SIGNATURE) { //'L264'
+        printf(p"error: weights.bin not found in reu\n");
+        char ch = getch(); // wait for keypress
+        exit(1);
+    }
+    REU_getf((REUPtr)0x080000, (float*)&tmp, sizeof(uint32_t)); // 512KB offset
+    if (tmp == SIGNATURE) { e++; }; // wraparound at 512KB
+    REU_getf((REUPtr)0x100000, (float*)&tmp, sizeof(uint32_t)); // 1MB offset
+    if (tmp == SIGNATURE) { e++; }; // wraparound at 1MB
+    if (e>0) {
+        printf(p"need at least 2mb reu\n");
+        char ch = getch(); // wait for keypress
+        exit(1);
+    }
+
+    // ok, continue with loading the model
     memory_map_weights(t);
     // allocate the RunState buffers
     malloc_run_state(t);

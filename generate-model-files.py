@@ -15,6 +15,7 @@ class Weights:
             self.weights_data = file.read()
 
         with open(output_filename, "wb") as file:
+            file.write('L264'.encode('utf-8')) # signature magic - embedded in transformer64.c
             file.write(self.weights_data)
 
         self.pad_to_next_multiple(output_filename)
