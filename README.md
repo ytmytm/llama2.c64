@@ -23,7 +23,7 @@ This project is a port of the Llama2.c codebase to the Commodore 64, hence the n
 Enable REU, set REU size to 2MB, and set REU image to the provided `weights.bin`. Load the program and turn on warp.
 
 ```
-x64 -warp -reu -reusize 2048 -reuimage weights.bin llama2c64.prg
+x64sc -warp -reu -reusize 2048 -reuimage weights.bin llama2c64.prg
 ```
 
 # Building and Testing
@@ -71,6 +71,8 @@ The script will read the tokenizer and model weights and save the corresponding 
 
 Original model weights and tokenizer file came from the [tinyllamas](https://huggingface.co/karpathy/tinyllamas/tree/main/stories260K) repository. You will find there also training information.
 
+Tinyllamas was trained on [TinyStories dataset](https://arxiv.org/abs/2305.07759), a synthetic dataset of short stories that only contain words that a typical 3 to 4-year-olds usually understand.
+
 ## Verification against `llama2.c`
 
 Run llama2.c in deterministic mode (temperature=0.0) and try the same prompt on C64:
@@ -103,21 +105,22 @@ These polynomial factors are actually copied from C64 BASIC ROM.
 
 ## Is this a joke?
 
-No, it really runs the same set of calculations as [llama2.c](https://github.com/karpathy/llama2.c) and returns exactly the same results. Just on a humble C64.
+No, it really runs the same set of calculations as [llama2.c](https://github.com/karpathy/llama2.c) and returns exactly the same results. A humble C64 runs the LLama2 model, it's only limited by the memory size.
 
-There is plenty of information provided in the README of [llama2.c](https://github.com/karpathy/llama2.c).
+There is plenty of information provided about this in the README of [llama2.c](https://github.com/karpathy/llama2.c).
 You can [read more about Transformer models here](https://medium.com/@smmzhu/demystifying-the-transformer-model-cd73e1b7ac87).
 
 ## What's the performance like? I have been waiting here for 15 minutes and it does nothing
 
 You will receive one output token approximately every 8 minutes. This is an estimation, the attention step depends on the number of tokens generated so far, so the process gets slower and slower.
-Note that the very first produced token is a start marker, so the text in the output will start appearing after 16 minutes. All the tokens from the input will be repeated in the output before any sampling starts.
+
+The very first produced token is a start marker, so the text in the output will start appearing after 16 minutes. All the tokens from the input will be repeated in the output before any sampling starts.
 
 ## What do those parameters mean?
 
 - `temperature` controls the randomness of the output, if set to `0.0` the result is deterministic
 - `top-p` ensures that tokens with tiny probabilities do not get sampled. Lower values make the output more focused and deterministic, while higher values increase diversity, if set to `0.0` the feature is off. This setting has no effect if temperature is `0.0`
-- `output tokens` controls the number of output tokens, note that one token may be more than one letter (e.g. `was` or `once` are tokens in the `tinystories` model)
+- `output tokens` controls the number of output tokens, one token may be more than one letter (e.g. `was` or `once` are tokens in the `tinystories` model); note that it's just a stop condition, it doesn't control the verbosity of the model
 
 *To control the diversity of samples, use either the temperature or the top-p value, but not both. Vary the temperature between 0.0 and 1.0 and keep top-p off (set to 0.0), or vary the top-p value between 0.0 and 1.0 and keep the temperature at 1.0.*
 
@@ -146,6 +149,10 @@ Certainly faster, but the results are wrong when SCPU is in turbo mode. I don't 
 ## What about a quantized model?
 
 If you can provide a pull request for a quantized int8 model, be my guest :)
+
+## Can I chat with it?
+
+No, it's not a model instructed and trained for chat. It can only tell a short story.
 
 ## Clock doesn't advance
 
