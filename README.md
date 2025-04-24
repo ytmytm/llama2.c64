@@ -18,13 +18,22 @@ This project is a port of the Llama2.c codebase to the Commodore 64, hence the n
 
 ![Parameter screen](media/02.inference.png)
 
-# How to run it with VICE?
+# How to run it?
+
+## VICE
 
 Enable REU, set REU size to 2MB, and set REU image to the provided `weights.reu`. Load the program and turn on warp.
 
 ```
 x64sc -warp -reu -reusize 2048 -reuimage weights.reu llama2c64.prg
 ```
+
+## Ultimate II+
+
+Enable REU in the Cartridge settings menu, with size at least 2MB. Navigate to location with `llama2.c64` and hit `<RETURN>` on `weights.reu` file.
+There will be an option to load this image into REU.
+
+Then start `llama2exo.prg` or `llama2c64.prg`.
 
 # Building and Testing
 
@@ -41,10 +50,12 @@ To build and run the program in one go, simply use:
 make test
 ```
 
+Exomizer is optional, needed to compress `llama2c64.prg` into smaller, easier to handle on real hardware `llama2exo.prg`.
+
 # Pros
 
 - Low power consumption
-- On-premise
+- On-premise inference
 - Safe: **your** data is completely under **your** control, it's not used to train new models
 - Doesn't require an expensive GPU
 - Waiting for the next token on a C64 is just as exciting as waiting for one coming from DeepSeek running on your laptop
@@ -59,9 +70,9 @@ make test
 
 ## Model
 
-There are two parts to the model: tokenizer and model weights. For C64, they need to be processed a bit.
+There are two parts to the model: tokenizer and model weights. For C64, they had to be processed a bit.
 
-This is done with the `generate-model-files.py` script.
+This preprocessing is done with the `generate-model-files.py` script.
 
 The script will read the tokenizer and model weights and save the corresponding files:
 
