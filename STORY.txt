@@ -1,3 +1,5 @@
+[20250424]
+Tested on real hardware. Renamed weights.bin to weights.reu so that Ultimate2+ will easily recognize REU image and load it from context menu.
 
 [20250421]
 Detect REU, REU size and config magic bytes signature.
