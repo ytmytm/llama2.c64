@@ -9,7 +9,7 @@ class Weights:
     def __init__(self):
         self.weights_data = None
 
-    def read_weights(self, checkpoint, output_filename="weights.bin"):
+    def read_weights(self, checkpoint, output_filename="weights.reu"):
         with open(checkpoint, "rb") as file:
             file.seek(28)  # Skip the first 28 bytes (Config)
             self.weights_data = file.read()
@@ -153,15 +153,15 @@ if __name__ == "__main__":
 
     config = Config()
     config.read_checkpoint(args.checkpoint, "config.bin")
-    
+
     tokenizer = Tokenizer()
     tokenizer.build_tokenizer(args.tokenizer, config.vocab_size)
     tokenizer.save_tokenizer("tokenizer.bin")
     tokenizer.free_tokenizer()
-    
+
     weights = Weights()
-    weights.read_weights(args.checkpoint, "weights.bin")
+    weights.read_weights(args.checkpoint, "weights.reu")
 
     print(f"Tokenizer saved to tokenizer.bin")
     print(f"Config saved to config.bin")
-    print(f"Weights saved as REU image to weights.bin")
+    print(f"Weights saved as REU image to weights.reu")

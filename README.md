@@ -20,10 +20,10 @@ This project is a port of the Llama2.c codebase to the Commodore 64, hence the n
 
 # How to run it with VICE?
 
-Enable REU, set REU size to 2MB, and set REU image to the provided `weights.bin`. Load the program and turn on warp.
+Enable REU, set REU size to 2MB, and set REU image to the provided `weights.reu`. Load the program and turn on warp.
 
 ```
-x64sc -warp -reu -reusize 2048 -reuimage weights.bin llama2c64.prg
+x64sc -warp -reu -reusize 2048 -reuimage weights.reu llama2c64.prg
 ```
 
 # Building and Testing
@@ -34,7 +34,7 @@ The project includes a Makefile to simplify building and testing. Here are the a
 - `make test` - Runs the program in VICE with the correct REU settings
 - `make clean` - Removes built files and generated model files
 
-The build process will automatically generate the required model files (`weights.bin`, `config.bin`, and `tokenizer.bin`) from the input files (`stories260K.bin` and `tok512.bin`) if they don't exist.
+The build process will automatically generate the required model files (`weights.reu`, `config.bin`, and `tokenizer.bin`) from the input files (`stories260K.bin` and `tok512.bin`) if they don't exist.
 
 To build and run the program in one go, simply use:
 ```
@@ -67,7 +67,7 @@ The script will read the tokenizer and model weights and save the corresponding 
 
 - `tokenizer.bin` - tokenizer data with NULL-terminated strings, uint16_t vocabulary size and offsets, and with uint8_t string lengths
 - `config.bin` - model parameters converted to uint16_t
-- `weights.bin` - model weights (unchanged float32), a REU image padded to the next valid size (2MB, 4MB, 16MB)
+- `weights.reu` - model weights (unchanged float32), a REU image padded to the next valid size (2MB, 4MB, 16MB)
 
 Original model weights and tokenizer file came from the [tinyllamas](https://huggingface.co/karpathy/tinyllamas/tree/main/stories260K) repository. You will find there also training information.
 

@@ -2,11 +2,11 @@
 
 // C64 port by Maciej 'YTM/Elysium' Witkowiak, 2025
 
-#define SIGNATURE 0x3436324C // 'L264' in little-endian uint32_t, embedded in weights.bin, written by generate-model-files.py
+#define SIGNATURE 0x3436324C // 'L264' in little-endian uint32_t, embedded in weights.reu, written by generate-model-files.py
 
 #include "transformer64.h"
 
-REUPtr reu_base = (REUPtr)(0+sizeof(uint32_t)); // base address of weights.bin inside REU, past the signature magic number
+REUPtr reu_base = (REUPtr)(0+sizeof(uint32_t)); // base address of weights.reu inside REU, past the signature magic number
 
 const unsigned char config_bin[] = {
     #embed "config.bin"
@@ -115,7 +115,7 @@ void memory_map_weights(Transformer* t) {
     ptr += sizeof(float) * p->seq_len * head_size / 2; // skip what used to be freq_cis_real (for RoPE)
     ptr += sizeof(float) * p->seq_len * head_size / 2; // skip what used to be freq_cis_imag (for RoPE)
     w->wcls = shared_weights ? w->token_embedding_table : ptr;
-    reu_base = ptr; // first free byte after weights (must match weights.bin length + initial offset)
+    reu_base = ptr; // first free byte after weights (must match weights.reu length + initial offset)
 }
 
 void load_transformer(Transformer *t) {
@@ -126,9 +126,9 @@ void load_transformer(Transformer *t) {
     // are model weights in REU?
     uint32_t tmp;
     uint8_t e = 0;
-    REU_getf((REUPtr)0, (float*)&tmp, sizeof(uint32_t)); // read first 4 bytes of weights.bin
+    REU_getf((REUPtr)0, (float*)&tmp, sizeof(uint32_t)); // read first 4 bytes of weights.reu
     if (tmp != SIGNATURE) { //'L264'
-        printf(p"error: weights.bin not found in reu\n");
+        printf(p"error: weights.reu not found in reu\n");
         char ch = getch(); // wait for keypress
         exit(1);
     }
