@@ -36,6 +36,25 @@ uint16_t sample_mult(float* probabilities, uint16_t n, float coin) {
     return n - 1; // in case of rounding errors
 }
 
+// not great, not terrible
+void bubblesort(ProbIndex* arr, uint16_t n) {
+    ProbIndex tmp;
+    for (uint16_t i = 0; i < n - 1; i++) {
+        for (uint16_t j = 0; j < n - i - 1; j++) {
+            if (arr[j].prob < arr[j + 1].prob) {
+                // swap elements
+                tmp.index = arr[i].index;
+                tmp.prob  = arr[i].prob;
+		arr[i].index = arr[j].index;
+		arr[i].prob  = arr[j].prob;
+		arr[j].index = tmp.index;
+		arr[j].prob  = tmp.prob;
+            }
+        }
+    }
+}
+
+// quicksort fails due to stack overflow
 void quicksort(ProbIndex* arr, uint16_t left, uint16_t right) {
     uint16_t i = left, j = right;
     ProbIndex tmp;
@@ -48,9 +67,12 @@ void quicksort(ProbIndex* arr, uint16_t left, uint16_t right) {
         while (arr[j].prob < pivot.prob)
             j--;
         if (i <= j) {
-            tmp = arr[i]; // XXX does this work for structs?
-            arr[i] = arr[j];
-            arr[j] = tmp;
+	    tmp.index = arr[i].index;
+	    tmp.prob  = arr[i].prob;
+	    arr[i].index = arr[j].index;
+	    arr[i].prob  = arr[j].prob;
+	    arr[j].index = tmp.index;
+	    arr[j].prob  = tmp.prob;
             i++;
             j--;
         }
@@ -81,11 +103,16 @@ uint16_t sample_topp(float* probabilities, uint16_t n, float topp, ProbIndex* pr
             n0++;
         }
     }
-    quicksort(probindex, 0, n0 - 1);
+    // if everything was cut off there would be a problem, fall back on most probable token
+    if (n0<=1) {
+	return sample_argmax(probabilities, n);
+    }
+    uint16_t last_idx = n0 - 1; // in case of rounding errors consider all elements
+    bubblesort(probindex, last_idx);
+//    quicksort(probindex, 0, last_idx);
 
     // truncate the list where cumulative probability exceeds topp
     float cumulative_prob = 0.0;
-    uint16_t last_idx = n0 - 1; // in case of rounding errors consider all elements
     for (uint16_t i = 0; i < n0; i++) {
         cumulative_prob += probindex[i].prob;
         if (cumulative_prob > topp) {
