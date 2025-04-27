@@ -18,7 +18,9 @@ This is not a chat model. Rather, imagine prompting a 3-year-old child with the 
 
 ## Prompt and output
 
-![Parameter screen](media/02.inference.png)
+![An example inference](media/02.inference.png)
+
+![A short story](media/03.inference.png)
 
 # How to run it?
 
