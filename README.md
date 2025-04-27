@@ -170,6 +170,10 @@ If you can provide a pull request for a quantized int8 model, be my guest :)
 
 ## Can I chat with it?
 
+# License
+
+MIT
+
 No, it's not a model instructed and trained for chat. It can only tell a short story.
 
 ## Clock doesn't advance
