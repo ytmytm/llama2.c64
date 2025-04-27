@@ -4,11 +4,13 @@
 
 Ported to C64 by Maciej 'YTM/Elysium' Witkowiak using [oscar64](https://github.com/drmortalwombat/oscar64)
 
-This is a [llama2.c](https://github.com/karpathy/llama2.c) port to the C64 equipped with 2MB REU, running the [260K tinystories model](https://huggingface.co/karpathy/tinyllamas/tree/main/stories260K).
+Llama2.c64 is a port of [llama2.c](https://github.com/karpathy/llama2.c) to the Commodore C64 equipped with a 2MB REU.
 
-This project is a port of the Llama2.c codebase to the Commodore 64, hence the name `llama2.c64`. The goal is to bring the functionality of Llama2 to the C64 platform, leveraging its unique hardware capabilities.
+It runs the [260K tinystories model](https://huggingface.co/karpathy/tinyllamas/tree/main/stories260K) bringing Llama2's capabilities to the unique C64 hardware environment.
 
-This is not a chat model. Rather, imagine prompting a 3-year-old child with the beginning of a story, which they will continue to the best of their vocabulary and abilities.
+This is not a chat model.
+
+Rather, imagine prompting a 3-year-old child with the beginning of a story — they will continue it to the best of their vocabulary and abilities.
 
 # How to run it?
 
@@ -25,7 +27,7 @@ x64sc -warp -reu -reusize 2048 -reuimage weights.reu llama2c64.prg
 Enable REU in the Cartridge settings menu, with size at least 2MB. Navigate to location with `llama2.c64` and hit `<RETURN>` on `weights.reu` file.
 There will be an option to load this image into REU.
 
-Then start `llama2exo.prg` or `llama2c64.prg`.
+Then start `llama2c64.prg`.
 
 # Pros
 
@@ -46,7 +48,7 @@ Then start `llama2exo.prg` or `llama2c64.prg`.
 
 ## Is this a joke?
 
-No, it really runs the same set of calculations as [llama2.c](https://github.com/karpathy/llama2.c) and returns exactly the same results. A humble C64 runs the LLama2 model, it's only limited by the memory size.
+No, it really runs the Llama2 architecture, performing the same set of calculations as [llama2.c](https://github.com/karpathy/llama2.c) and producing identical results. A humble C64 runs the Llama2 model - the only limitation being REU memory size.
 
 There is plenty of information provided about this in the README of [llama2.c](https://github.com/karpathy/llama2.c).
 You can [read more about Transformer models here](https://medium.com/@smmzhu/demystifying-the-transformer-model-cd73e1b7ac87).

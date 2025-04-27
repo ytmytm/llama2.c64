@@ -2,13 +2,13 @@
 
 Ported to C64 by Maciej 'YTM/Elysium' Witkowiak using [oscar64](https://github.com/drmortalwombat/oscar64)
 
-This is a [llama2.c](https://github.com/karpathy/llama2.c) port to the C64 equipped with 2MB REU, running the [260K tinystories model](https://huggingface.co/karpathy/tinyllamas/tree/main/stories260K).
+Llama2.c64 is a port of [llama2.c](https://github.com/karpathy/llama2.c) to the Commodore C64 equipped with a 2MB REU.
 
-You can recompile it to run your own model. As long as it fits within 2MB (real hardware) or 16MB (virtual like UII+) together with caches, it should work fine.
+It runs the [260K tinystories model](https://huggingface.co/karpathy/tinyllamas/tree/main/stories260K) bringing Llama2's capabilities to the unique C64 hardware environment.
 
-This project is a port of the Llama2.c codebase to the Commodore 64, hence the name `llama2.c64`. The goal is to bring the functionality of Llama2 to the C64 platform, leveraging its unique hardware capabilities.
+This is not a chat model.
 
-This is not a chat model. Rather, imagine prompting a 3-year-old child with the beginning of a story, which they will continue to the best of their vocabulary and abilities.
+Rather, imagine prompting a 3-year-old child with the beginning of a story — they will continue it to the best of their vocabulary and abilities.
 
 # Screenshots
 
