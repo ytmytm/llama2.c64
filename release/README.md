@@ -1,24 +1,14 @@
 # Llama2.c64
 
+## https://github.com/ytmytm/llama2.c64
+
 Ported to C64 by Maciej 'YTM/Elysium' Witkowiak using [oscar64](https://github.com/drmortalwombat/oscar64)
 
 This is a [llama2.c](https://github.com/karpathy/llama2.c) port to the C64 equipped with 2MB REU, running the [260K tinystories model](https://huggingface.co/karpathy/tinyllamas/tree/main/stories260K).
 
-You can recompile it to run your own model. As long as it fits within 2MB (real hardware) or 16MB (virtual like UII+) together with caches, it should work fine.
-
 This project is a port of the Llama2.c codebase to the Commodore 64, hence the name `llama2.c64`. The goal is to bring the functionality of Llama2 to the C64 platform, leveraging its unique hardware capabilities.
 
 This is not a chat model. Rather, imagine prompting a 3-year-old child with the beginning of a story, which they will continue to the best of their vocabulary and abilities.
-
-# Screenshots
-
-## Parameter screen
-
-![Parameter screen](media/01.parameters.png)
-
-## Prompt and output
-
-![Parameter screen](media/02.inference.png)
 
 # How to run it?
 
@@ -37,23 +27,6 @@ There will be an option to load this image into REU.
 
 Then start `llama2exo.prg` or `llama2c64.prg`.
 
-# Building and Testing
-
-The project includes a Makefile to simplify building and testing. Here are the available commands:
-
-- `make build` - Compiles the source code with optimization level 2
-- `make test` - Runs the program in VICE with the correct REU settings
-- `make clean` - Removes built files and generated model files
-
-The build process will automatically generate the required model files (`weights.reu`, `config.bin`, and `tokenizer.bin`) from the input files (`stories260K.bin` and `tok512.bin`) if they don't exist.
-
-To build and run the program in one go, simply use:
-```
-make test
-```
-
-Exomizer is optional, needed to compress `llama2c64.prg` into smaller, easier to handle on real hardware `llama2exo.prg`.
-
 # Pros
 
 - Low power consumption
@@ -69,23 +42,14 @@ Exomizer is optional, needed to compress `llama2c64.prg` into smaller, easier to
 - Feels a bit slow, not for the impatient
 - Won't handle models larger than about 8MB, because REU is limited to 16MB
 
-# Technical details
+# FAQ
 
-## Model
+## Is this a joke?
 
-There are two parts to the model: tokenizer and model weights. For C64, they had to be processed a bit.
+No, it really runs the same set of calculations as [llama2.c](https://github.com/karpathy/llama2.c) and returns exactly the same results. A humble C64 runs the LLama2 model, it's only limited by the memory size.
 
-This preprocessing is done with the `generate-model-files.py` script.
-
-The script will read the tokenizer and model weights and save the corresponding files:
-
-- `tokenizer.bin` - tokenizer data with NULL-terminated strings, uint16_t vocabulary size and offsets, and with uint8_t string lengths
-- `config.bin` - model parameters converted to uint16_t
-- `weights.reu` - model weights (unchanged float32), a REU image padded to the next valid size (2MB, 4MB, 16MB)
-
-Original model weights and tokenizer file came from the [tinyllamas](https://huggingface.co/karpathy/tinyllamas/tree/main/stories260K) repository. You will find there also training information.
-
-Tinyllamas was trained on [TinyStories dataset](https://arxiv.org/abs/2305.07759), a synthetic dataset of short stories that only contain words that a typical 3 to 4-year-olds usually understand.
+There is plenty of information provided about this in the README of [llama2.c](https://github.com/karpathy/llama2.c).
+You can [read more about Transformer models here](https://medium.com/@smmzhu/demystifying-the-transformer-model-cd73e1b7ac87).
 
 ## Verification against `llama2.c`
 
@@ -100,31 +64,6 @@ In both cases, you should see
 ```
 Zoo was a little girl named Lily. She loved to play outside in the park. One day, she saw a big, red ball. She wanted to play with it, but she didn't want to play with
 ```
-
-## Memory
-
-- The tokenizer and its encoding/decoding dictionaries fit within C64 memory (`tokenizer64.c`)
-- Model weights and some of the data structures have to be in REU due to their size (`transformer64.c`)
-- Some remaining data structures from `Transformer` also stayed within C64 memory
-
-## `math.c`
-
-I provide my own code for `my_sin`, `my_cos`, and `my_exp` for better accuracy than the ones that come with [oscar64](https://github.com/drmortalwombat/oscar64).
-These polynomial factors are actually copied from C64 BASIC ROM.
-
-## Branches
-
-- `wrapped_debug` - development branch with lots of debug messages and data structure dumps for calculation comparisons with `llama2.c`, use that as a start for the quantized version; it also shows how much memory is used for each part (note: top-p sampler was not backported there)
-- `feature-fastmult` - an attempt to speed up `float32` multiplication using `uint8_t` times table (64K in REU); it turned out to be twice as slow, but nevertheless can be useful for the quantized version
-
-# FAQ
-
-## Is this a joke?
-
-No, it really runs the same set of calculations as [llama2.c](https://github.com/karpathy/llama2.c) and returns exactly the same results. A humble C64 runs the LLama2 model, it's only limited by the memory size.
-
-There is plenty of information provided about this in the README of [llama2.c](https://github.com/karpathy/llama2.c).
-You can [read more about Transformer models here](https://medium.com/@smmzhu/demystifying-the-transformer-model-cd73e1b7ac87).
 
 ## What's the performance like? I have been waiting here for 15 minutes and it does nothing
 
@@ -144,16 +83,6 @@ The very first produced token is a start marker, so the text in the output will 
 
 That's the number of input tokens. In this model, the input tokens are first all copied to output before any sampling happens.
 
-## How to compile it?
-
-`oscar64` wants everything in one file, so it's just:
-```
-oscar64 -O2 llama2c64.c
-```
-Do not use other optimizations besides `-O0`, `-O1`, or `-O2`, they break the program.
-
-`Makefile` has everything you need to rebuild model files and recompile the program.
-
 ## Can it run faster?
 
 Yes, but just a bit. Several things can be optimized, but the truth is - it doesn't matter. The program spends most of the time in one of the three matrix multiplication functions. Optimizing anything else is a waste of time.
@@ -161,10 +90,6 @@ Yes, but just a bit. Several things can be optimized, but the truth is - it does
 ## Will it run faster with SCPU?
 
 Certainly faster, but the results are wrong when SCPU is in turbo mode. I didn't investigate why. (Tested with VICE)
-
-## What about a quantized model?
-
-If you can provide a pull request for a quantized int8 model, be my guest :)
 
 ## Can I chat with it?
 
