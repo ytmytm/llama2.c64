@@ -2,7 +2,7 @@
 
 Ported to C64 by Maciej 'YTM/Elysium' Witkowiak using [oscar64](https://github.com/drmortalwombat/oscar64)
 
-Llama2.c64 is a port of [llama2.c](https://github.com/karpathy/llama2.c) to the Commodore C64 equipped with a 2MB REU.
+Llama2.c64 is a port of [llama2.c](https://github.com/karpathy/llama2.c) to the Commodore C64 equipped with at least 2MB REU.
 
 It runs the [260K tinystories model](https://huggingface.co/karpathy/tinyllamas/tree/main/stories260K) bringing Llama2's capabilities to the unique C64 hardware environment.
 
